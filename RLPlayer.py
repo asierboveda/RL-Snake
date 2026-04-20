@@ -1,3 +1,11 @@
+rl_player = RLPlayer(0, "G", game, epsilon=0.1, training_enabled=True)   # entrenamiento
+rl_player = RLPlayer(0, "G", game, epsilon=0.0, training_enabled=False)  # evaluacion
+
+# Al terminar cada episodio (aplica penalizacion terminal si murio):
+rl_player.end_episode()
+
+# Al final de la fase de entrenamiento (guarda Q-Table en disco):
+rl_player.save_model()
 import random
 import os
 import pickle
@@ -162,4 +170,18 @@ class RLPlayer:
 		if self.game.turn % 50 == 0:
 			self.save_q_table()
 			
-		return action
+		return action```
+
+# INSTRUCCIONES DEL MANAGER (basadas en diagnostico del observer)
+Iteracion: 2/3
+Objetivo: Improve RL Snake agent with manager-worker loop
+
+PROBLEMA DIAGNOSTICADO: muertes evitables por muro o cuerpo propio (el agente tenia acciones seguras pero eligio una peligrosa). CAMBIOS REQUERIDOS en RLPlayer.py: (1) En get_state(): añadir 4 valores de distancia normalizada a los bordes:     north_dist=head[0]/game.rSize, south_dist=(game.rSize-1-head[0])/game.rSize,     east_dist=(game.cSize-1-head[1])/game.cSize, west_dist=head[1]/game.cSize.     Discretizar en 3 niveles: 0=peligro(dist<=2), 1=precaucion(3-5), 2=libre(>5).     Incorporar estas 4 variables al tuple que retorna get_state(). (2) En update_q_table(): añadir penalizacion extra de -10 cuando la accion     reduce la distancia minima al muro a <= 2 celdas, aunque no sea muerte inmediata.     Esto se calcula antes de llamar a la formula Q estándar. (3) En play(): aumentar la penalizacion de muerte de -100 a -150. NO toques alpha, gamma, find_goal ni la logica de frutas en este ciclo. EVIDENCIA DEL OBSERVER (ultima evaluacion): Primera iteracion o sin datos del observer. Iteracion 2/3. Objetivo: Improve RL Snake agent with manager-worker loop
+
+# TAREA
+Genera el contenido COMPLETO y ACTUALIZADO de RLPlayer.py con exactamente
+los cambios indicados. Un unico bloque python con el archivo completo.
+Sin texto explicativo fuera del bloque de codigo."?
+
+For non-interactive mode, use the -p or --prompt option.
+Try 'copilot --help' for more information.
