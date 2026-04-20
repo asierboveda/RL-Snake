@@ -89,7 +89,7 @@ jobs:
           EOF
 
           gh extension install github/gh-copilot || true
-          gh copilot explain "$(cat current_prompt.txt)" > raw_response.txt
+          gh copilot explain -p "$(cat current_prompt.txt)" > raw_response.txt
           sed -n '/^```\(python\|py\)/,/^```/p' raw_response.txt | grep -v '^```' > extracted_rlplayer.py || true
           if [ -s extracted_rlplayer.py ]; then
             mv extracted_rlplayer.py RLPlayer.py
@@ -307,19 +307,18 @@ jobs:
           fi
           NEXT_ITER=$(( ${{ github.event.inputs.iteration }} + 1 ))
 
-          gh api repos/${{ github.repository }}/dispatches \
-            --method POST \
-            -f event_type="$EVENT_TYPE" \
-            -f client_payload="$(jq -cn \
-              --arg objective "${{ github.event.inputs.objective }}" \
-              --argjson next_iteration "$NEXT_ITER" \
-              --arg max_iterations "${{ github.event.inputs.max_iterations }}" \
-              --arg base_branch "${{ github.event.inputs.base_branch }}" \
-              --arg manager_run_id "${{ github.event.inputs.manager_run_id }}" \
-              --arg worker_role "${{ github.event.inputs.worker_role }}" \
-              --arg branch_name "${{ github.event.inputs.branch_name }}" \
-              --argjson metrics "$METRICS_PAYLOAD" \
-              '{objective:$objective,next_iteration:$next_iteration,max_iterations:($max_iterations|tonumber),base_branch:$base_branch,manager_run_id:$manager_run_id,worker_role:$worker_role,branch_name:$branch_name,metrics:$metrics}')"
+          jq -cn \
+            --arg event_type "$EVENT_TYPE" \
+            --arg objective "${{ github.event.inputs.objective }}" \
+            --argjson next_iteration "$NEXT_ITER" \
+            --arg max_iterations "${{ github.event.inputs.max_iterations }}" \
+            --arg base_branch "${{ github.event.inputs.base_branch }}" \
+            --arg manager_run_id "${{ github.event.inputs.manager_run_id }}" \
+            --arg worker_role "${{ github.event.inputs.worker_role }}" \
+            --arg branch_name "${{ github.event.inputs.branch_name }}" \
+            --argjson metrics "$METRICS_PAYLOAD" \
+            '{event_type:$event_type,client_payload:{objective:$objective,next_iteration:$next_iteration,max_iterations:($max_iterations|tonumber),base_branch:$base_branch,manager_run_id:$manager_run_id,worker_role:$worker_role,branch_name:$branch_name,metrics:$metrics}}' \
+            | gh api repos/${{ github.repository }}/dispatches --method POST --input -
 
       - name: Persist worker trace
         if: always()
