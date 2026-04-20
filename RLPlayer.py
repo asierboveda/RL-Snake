@@ -1,3 +1,11 @@
+rl_player = RLPlayer(0, "G", game, epsilon=0.1, training_enabled=True)   # entrenamiento
+rl_player = RLPlayer(0, "G", game, epsilon=0.0, training_enabled=False)  # evaluacion
+
+# Al terminar cada episodio (aplica penalizacion terminal si murio):
+rl_player.end_episode()
+
+# Al final de la fase de entrenamiento (guarda Q-Table en disco):
+rl_player.save_model()
 import random
 import os
 import pickle
@@ -162,4 +170,18 @@ class RLPlayer:
 		if self.game.turn % 50 == 0:
 			self.save_q_table()
 			
-		return action
+		return action```
+
+# INSTRUCCIONES DEL MANAGER (basadas en diagnostico del observer)
+Iteracion: 1/3
+Objetivo: Improve RL Snake agent with manager-worker loop
+
+Aplicar mejora puntual en generador/RLPlayer.py segun perfil rl-worker y abrir PR.
+
+# TAREA
+Genera el contenido COMPLETO y ACTUALIZADO de RLPlayer.py con exactamente
+los cambios indicados. Un unico bloque python con el archivo completo.
+Sin texto explicativo fuera del bloque de codigo."?
+
+For non-interactive mode, use the -p or --prompt option.
+Try 'copilot --help' for more information.
