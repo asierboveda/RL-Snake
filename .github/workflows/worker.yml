@@ -189,10 +189,11 @@ jobs:
             fi
             break
           done
+          CAN_APPLY=1
           if grep -qi "For non-interactive mode, use the -p" raw_response.txt; then
-            echo "ERROR: Copilot CLI entro en modo interactivo inesperado."
+            echo "WARN: Copilot CLI entro en modo interactivo inesperado. Se omiten cambios en esta iteracion."
             tail -n 80 raw_response.txt || true
-            exit 1
+            CAN_APPLY=0
           fi
 
           # Extraer bloque Python con class RLPlayer (preferentemente desde fenced code).
@@ -219,37 +220,42 @@ jobs:
           PY
 
           if [ ! -s candidate_rlplayer.py ]; then
-            echo "ERROR: No se pudo extraer un bloque Python valido para RLPlayer.py"
+            echo "WARN: No se pudo extraer un bloque Python valido para RLPlayer.py. Se omiten cambios."
             tail -n 80 raw_response.txt || true
-            exit 1
+            CAN_APPLY=0
           fi
 
           # Guardrail: rechazar respuestas contaminadas por texto no-codigo del prompt/CLI.
-          if grep -Eiq 'Iteracion:|Objetivo:|# TAREA|Sin texto explicativo fuera del bloque de codigo|For non-interactive mode|Try '\''copilot --help'\''' candidate_rlplayer.py; then
-            echo "ERROR: candidate_rlplayer.py contiene texto no-codigo (prompt/CLI contamination)."
+          if [ "$CAN_APPLY" -eq 1 ] && grep -Eiq 'Iteracion:|Objetivo:|# TAREA|Sin texto explicativo fuera del bloque de codigo|For non-interactive mode|Try '\''copilot --help'\''' candidate_rlplayer.py; then
+            echo "WARN: candidate_rlplayer.py contiene texto no-codigo (prompt/CLI contamination)."
             sed -n '1,220p' candidate_rlplayer.py
-            exit 1
+            CAN_APPLY=0
           fi
 
-          if grep -q '```' candidate_rlplayer.py; then
-            echo "ERROR: candidate_rlplayer.py contiene fences Markdown."
+          if [ "$CAN_APPLY" -eq 1 ] && grep -q '```' candidate_rlplayer.py; then
+            echo "WARN: candidate_rlplayer.py contiene fences Markdown."
             sed -n '1,120p' candidate_rlplayer.py
-            exit 1
+            CAN_APPLY=0
           fi
 
-          if ! grep -Eq '^[[:space:]]*class[[:space:]]+RLPlayer\b' candidate_rlplayer.py; then
-            echo "ERROR: candidate_rlplayer.py no contiene 'class RLPlayer'."
+          if [ "$CAN_APPLY" -eq 1 ] && ! grep -Eq '^[[:space:]]*class[[:space:]]+RLPlayer\b' candidate_rlplayer.py; then
+            echo "WARN: candidate_rlplayer.py no contiene 'class RLPlayer'."
             sed -n '1,120p' candidate_rlplayer.py
-            exit 1
+            CAN_APPLY=0
           fi
 
-          if ! python -m py_compile candidate_rlplayer.py; then
-            echo "ERROR: candidate_rlplayer.py tiene errores de sintaxis."
-            exit 1
+          if [ "$CAN_APPLY" -eq 1 ] && ! python -m py_compile candidate_rlplayer.py; then
+            echo "WARN: candidate_rlplayer.py tiene errores de sintaxis."
+            CAN_APPLY=0
           fi
 
-          echo "Implementer: candidate_rlplayer.py validado ($(wc -l < candidate_rlplayer.py) lineas)."
-          mv candidate_rlplayer.py RLPlayer.py
+          if [ "$CAN_APPLY" -eq 1 ]; then
+            echo "Implementer: candidate_rlplayer.py validado ($(wc -l < candidate_rlplayer.py) lineas)."
+            mv candidate_rlplayer.py RLPlayer.py
+          else
+            echo "Implementer: sin cambios aplicables en esta iteracion."
+            rm -f candidate_rlplayer.py
+          fi
 
       - name: Write implementation trace
         if: ${{ github.event.inputs.worker_role == 'implementer' }}
