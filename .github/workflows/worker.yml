@@ -221,7 +221,7 @@ jobs:
               -m "feat(ai-impl): mejora RL iteracion ${{ github.event.inputs.iteration }}" \
               -m "Manager run: ${{ github.event.inputs.manager_run_id }}" \
               -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
-            git push -u origin "${{ github.event.inputs.branch_name }}"
+            git push --force-with-lease -u origin "${{ github.event.inputs.branch_name }}"
           else
             echo "Sin cambios para commitear."
           fi

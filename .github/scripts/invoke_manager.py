@@ -244,12 +244,16 @@ def _build_tasks(
     base_branch: str,
     target_branch: str,
     report: Dict[str, Any],
+    manager_run_id: str = "",
 ) -> List[Dict[str, Any]]:
 
     metrics   = report.get("metrics", {})
     diagnosis = report.get("diagnosis", {})
     plan      = _select_plan(diagnosis)
     run_slug  = _slug(objective)
+    # Use last 6 chars of manager_run_id to keep branch names short but unique.
+    # Falls back to iteration number if run_id not provided.
+    run_suffix = manager_run_id[-6:] if manager_run_id else f"it{iteration}"
 
     tasks = []
 
@@ -279,11 +283,12 @@ def _build_tasks(
             f"EVIDENCIA DEL OBSERVER (ultima evaluacion): {findings_text} "
             f"Iteracion {iteration}/{max_iterations}. Objetivo: {objective}"
         )
-        implementer_branch = f"ai/impl-{run_slug}-it{iteration}"
+        # Branch name is unique per manager run so it never collides with past runs.
+        implementer_branch = f"ai/impl-{run_slug}-{run_suffix}"
         tasks.append({
             "worker_role":       "implementer",
             "branch_name":       implementer_branch,
-            "base_branch":       target_branch, # Create branch from the commit we just evaluated
+            "base_branch":       target_branch,  # implementer branches off the evaluated commit
             "instructions":      implementer_instruction,
             "problem_diagnosed": diagnosis.get("problem_code", "unknown"),
             "ref":               target_branch,
@@ -321,11 +326,12 @@ def main() -> None:
         or "Improve RL Snake agent with manager-worker loop"
     )
 
-    action = os.environ.get("EVENT_ACTION", "start").strip()
+    action         = os.environ.get("EVENT_ACTION", "start").strip()
     iteration      = _as_int(os.environ.get("ITERATION", "1"), 1)
     max_iterations = _as_int(os.environ.get("MAX_ITERATIONS", "3"), 3)
     base_branch    = os.environ.get("BASE_BRANCH", "main").strip() or "main"
     target_branch  = os.environ.get("TARGET_BRANCH", base_branch).strip() or base_branch
+    manager_run_id = os.environ.get("MANAGER_RUN_ID", "").strip()
 
     report         = _load_report()
     should_continue = iteration <= max_iterations
@@ -358,7 +364,8 @@ def main() -> None:
 
     if should_continue:
         payload["tasks"] = _build_tasks(
-            action, objective, iteration, max_iterations, base_branch, target_branch, report
+            action, objective, iteration, max_iterations, base_branch, target_branch, report,
+            manager_run_id=manager_run_id
         )
 
     print(json.dumps(payload, ensure_ascii=True))
