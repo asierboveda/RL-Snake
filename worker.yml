@@ -1,0 +1,106 @@
+name: Worker Execution
+
+on:
+  workflow_dispatch:
+    inputs:
+      worker_type:
+        description: 'Type of worker executing the task'
+        required: true
+      branch_name:
+        description: 'Target branch for the code changes'
+        required: true
+      instructions:
+        description: 'Specific context/instructions assigned to the worker'
+        required: true
+      manager_run_id:
+        description: 'Run ID of the orchestrator'
+        required: true
+
+jobs:
+  execute-task:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+      - name: Setup Isolation Branch
+        run: |
+          git checkout -b ${{ github.event.inputs.branch_name }}
+          
+      - name: Generate Code (AI Execution)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          AGENT_FILE=".github/agents/${{ github.event.inputs.worker_type }}-worker.md"
+          if [ ! -f "$AGENT_FILE" ]; then
+            echo "Error: Agent profile $AGENT_FILE does not exist."
+            exit 1
+          fi
+          
+          cat $AGENT_FILE > current_prompt.txt
+          echo -e "\n\nINSTRUCCIONES DE TAREA:\n${{ github.event.inputs.instructions }}" >> current_prompt.txt
+          
+          # Simulador de auto-aplicación vía Copilot CLI o herramientas derivadas
+          # ej: cat current_prompt.txt | gh copilot suggest --apply
+          echo "/* AI Worker: ${{ github.event.inputs.worker_type }} */" > generated_component.txt
+          
+      - name: Commit and Push Task Changes
+        run: |
+          git add .
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "feat(ai-worker): execution of ${{ github.event.inputs.worker_type }} task"
+            git push -u origin ${{ github.event.inputs.branch_name }}
+          else
+            echo "No changes were generated."
+            exit 0
+          fi
+          
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --title "🤖 AI Task (${{ github.event.inputs.worker_type }}): ${{ github.event.inputs.branch_name }}" \
+            --body "Generado por AI Harness.
+            **Manager Run:** ${{ github.event.inputs.manager_run_id }}
+            **Instrucciones recibidas:** ${{ github.event.inputs.instructions }}" \
+            --base main \
+            --head ${{ github.event.inputs.branch_name }}
+            
+      - name: Automated Traceability (Worker)
+        if: always()
+        continue-on-error: true
+        run: |
+          # Cambiamos a main para persistir la traza y evitar mezclar documentación en el PR
+          git checkout main
+          
+          mkdir -p docs/ai-traces
+          TRACE_FILE="docs/ai-traces/worker-${{ github.event.inputs.worker_type }}-${{ github.run_id }}.md"
+          
+          cat << 'EOF' > "$TRACE_FILE"
+          # Worker Execution Trace
+          **Worker Type:** ${{ github.event.inputs.worker_type }}
+          **Branch:** ${{ github.event.inputs.branch_name }}
+          **Manager Run ID:** ${{ github.event.inputs.manager_run_id }}
+          **Status:** ${{ job.status }}
+          
+          ## Instructions
+          ${{ github.event.inputs.instructions }}
+          EOF
+          
+          git add "$TRACE_FILE"
+          git commit -m "docs(ai-trace): worker ${{ github.event.inputs.worker_type }} run ${{ github.run_id }}"
+          
+          # Estrategia de reintento frente a concurrencia extrema de múltiples workers
+          for i in {1..5}; do
+            git pull --rebase origin main && git push origin main && break || sleep $((RANDOM % 5 + 3))
+          done

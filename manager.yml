@@ -1,0 +1,77 @@
+name: Manager Orchestrator
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  dispatch-workers:
+    if: github.event.label.name == 'ai-dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: write
+      actions: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Manager Analysis (AI Execution)
+        id: analysis
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Captura estricta del stdout
+          JSON_OUT=$(python .github/scripts/invoke_manager.py)
+          echo "json_payload=$JSON_OUT" >> $GITHUB_OUTPUT
+
+      - name: Dispatch Tasks to Workers
+        env:
+          JSON_PAYLOAD: ${{ steps.analysis.outputs.json_payload }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$JSON_PAYLOAD" | jq -c '.tasks[]' | while read i; do
+            WORKER_TYPE=$(echo "$i" | jq -r '.worker_type')
+            BRANCH_NAME=$(echo "$i" | jq -r '.branch_name')
+            INSTRUCTIONS=$(echo "$i" | jq -r '.instructions')
+            
+            gh workflow run worker.yml \
+              -f worker_type="$WORKER_TYPE" \
+              -f branch_name="$BRANCH_NAME" \
+              -f instructions="$INSTRUCTIONS" \
+              -f manager_run_id="${{ github.run_id }}"
+          done
+
+      - name: Automated Traceability (Manager)
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p docs/ai-traces
+          TRACE_FILE="docs/ai-traces/manager-${{ github.run_id }}.md"
+          
+          cat << 'EOF' > "$TRACE_FILE"
+          # Manager Execution Trace (Run ID: ${{ github.run_id }})
+          **Triggered by Issue:** #${{ github.event.issue.number }}
+          
+          ## Generated JSON Plan
+          ```json
+          ${{ steps.analysis.outputs.json_payload }}
+          ```
+          EOF
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$TRACE_FILE"
+          git commit -m "docs(ai-trace): manager run ${{ github.run_id }}"
+          
+          # Estrategia de reintento para evitar Race Conditions en Git
+          for i in {1..5}; do
+            git pull --rebase origin main && git push origin main && break || sleep $((RANDOM % 5 + 3))
+          done
