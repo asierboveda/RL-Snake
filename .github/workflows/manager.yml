@@ -28,6 +28,9 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Instalar la extensión de Copilot en el runner del Manager
+          gh extension install github/gh-copilot
+          
           # Captura estricta del stdout
           JSON_OUT=$(python .github/scripts/invoke_manager.py)
           echo "json_payload=$JSON_OUT" >> $GITHUB_OUTPUT
