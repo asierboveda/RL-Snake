@@ -179,17 +179,36 @@ jobs:
           Sin texto explicativo fuera del bloque de codigo.
           EOF
 
-          gh extension install github/gh-copilot 2>/dev/null || true
-          gh copilot suggest -t shell "$(cat implementer_prompt.txt)" > raw_response.txt 2>&1 || \
-            gh copilot explain "$(cat implementer_prompt.txt)" > raw_response.txt 2>&1 || true
+          # Ejecutar Copilot CLI en modo NO interactivo.
+          gh copilot -p "$(cat implementer_prompt.txt)" > raw_response.txt 2>&1 || true
+          if grep -qi "For non-interactive mode, use the -p" raw_response.txt; then
+            echo "ERROR: Copilot CLI entro en modo interactivo inesperado."
+            tail -n 80 raw_response.txt || true
+            exit 1
+          fi
 
-          # Extraer solo el primer bloque ```python ... ``` para evitar basura de CLI.
-          awk '
-            BEGIN {capture=0; found=0}
-            /^```(python|py)[[:space:]]*$/ { if (found==0) {capture=1; found=1; next} }
-            /^```[[:space:]]*$/ { if (capture==1) {capture=0; exit} }
-            capture==1 { print }
-          ' raw_response.txt > candidate_rlplayer.py
+          # Extraer bloque Python con class RLPlayer (preferentemente desde fenced code).
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          raw = Path("raw_response.txt").read_text(encoding="utf-8", errors="ignore")
+          blocks = re.findall(r"```(?:python|py)\s*\n(.*?)```", raw, flags=re.IGNORECASE | re.DOTALL)
+
+          candidate = None
+          for block in reversed(blocks):
+              if re.search(r"^\s*class\s+RLPlayer\b", block, flags=re.MULTILINE):
+                  candidate = block.strip("\n")
+                  break
+
+          if candidate is None and re.search(r"^\s*class\s+RLPlayer\b", raw, flags=re.MULTILINE):
+              candidate = raw
+
+          Path("candidate_rlplayer.py").write_text(
+              (candidate + "\n") if candidate else "",
+              encoding="utf-8",
+          )
+          PY
 
           if [ ! -s candidate_rlplayer.py ]; then
             echo "ERROR: No se pudo extraer un bloque Python valido para RLPlayer.py"
