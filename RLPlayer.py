@@ -1,3 +1,11 @@
+rl_player = RLPlayer(0, "G", game, epsilon=0.1, training_enabled=True)   # entrenamiento
+rl_player = RLPlayer(0, "G", game, epsilon=0.0, training_enabled=False)  # evaluacion
+
+# Al terminar cada episodio (aplica penalizacion terminal si murio):
+rl_player.end_episode()
+
+# Al final de la fase de entrenamiento (guarda Q-Table en disco):
+rl_player.save_model()
 import random
 import os
 import pickle
@@ -162,4 +170,18 @@ class RLPlayer:
 		if self.game.turn % 50 == 0:
 			self.save_q_table()
 			
-		return action
+		return action```
+
+# INSTRUCCIONES DEL MANAGER (basadas en diagnostico del observer)
+Iteracion: 2/1000
+Objetivo: Improve RL Snake agent with manager-worker loop
+
+ESTADO: metricas aceptables sin un problema dominante. CAMBIOS REQUERIDOS en RLPlayer.py: (1) En __init__(): añadir parametro 'epsilon_decay=0.995' con valor por defecto.     Guardar como self.epsilon_decay = epsilon_decay. (2) Crear metodo decay_epsilon(self):     'self.epsilon = max(self.epsilon * self.epsilon_decay, 0.05)'. (3) En end_episode(): llamar a self.decay_epsilon() al final del metodo,     solo cuando training_enabled=True. (4) En update_q_table(): si len(self.q_table) > 500, usar self.alpha = 0.15     en lugar del valor por defecto (el agente tiene experiencia suficiente). NO añadas nuevas features de estado en este ciclo. EVIDENCIA DEL OBSERVER (ultima evaluacion): ESTADO ACEPTABLE: No hay un patron de fallo dominante. win_rate=70%, early_death=20%. Recomendacion: reducir epsilon para consolidar la politica aprendida. Iteracion 2/1000. Objetivo: Improve RL Snake agent with manager-worker loop
+
+# TAREA
+Genera el contenido COMPLETO y ACTUALIZADO de RLPlayer.py con exactamente
+los cambios indicados. Un unico bloque python con el archivo completo.
+Sin texto explicativo fuera del bloque de codigo."?
+
+For non-interactive mode, use the -p or --prompt option.
+Try 'copilot --help' for more information.
