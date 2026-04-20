@@ -42,44 +42,61 @@ def _slug(text: str, fallback: str = "rl-improvement") -> str:
     return slug[:48] if slug else fallback
 
 
+def _default_report() -> Dict[str, Any]:
+    """Reporte por defecto para primera iteracion o cuando no hay datos del observer."""
+    return {
+        "metrics": {
+            "rl_win_rate":        0.0,
+            "avg_turns":          0.0,
+            "avg_rl_score":       0.0,
+            "avg_rl_fruit_score": 0.0,
+            "avg_rl_kills":       0.0,
+            "early_death_rate":   100.0,
+            "death_cause_counts": {},
+            "outcome_counts":     {},
+        },
+        "diagnosis": {
+            "problem_code":         "avoidable_wall_self_deaths",
+            "dominant_cause":       "wall",
+            "avoidable_death_pct":  100.0,
+            "trapped_death_pct":    0.0,
+            "avg_wall_dist_death":  0.5,
+            "avg_enemy_dist_death": 10.0,
+            "hunter_deaths":        0,
+            "farmer_deaths":        0,
+            "findings":             ["Primera iteracion o sin datos del observer."],
+        }
+    }
+
+
 def _load_report() -> Dict[str, Any]:
     """
     Lee el reporte completo del Observer desde la variable de entorno.
-    El reporte tiene dos secciones: 'metrics' y 'diagnosis'.
-    En la primera iteracion no hay reporte previo; se usan defaults.
+
+    IMPORTANTE: GitHub Actions envia la cadena literal "null" cuando un output
+    de un step anterior no estaba configurado. json.loads("null") devuelve None
+    en Python (no un dict), lo que rompe las llamadas .get() posteriores.
+    Este metodo defiende explicitamente contra ese caso.
     """
     raw = os.environ.get("RUNNER_REPORT_JSON", "").strip()
-    if not raw or raw == "{}":
-        # Primera iteracion: sin datos. El observer no ha corrido aun.
-        # Defaults que empujan hacia diagnostico de supervivencia basica.
-        return {
-            "metrics": {
-                "rl_win_rate":        0.0,
-                "avg_turns":          0.0,
-                "avg_rl_score":       0.0,
-                "avg_rl_fruit_score": 0.0,
-                "avg_rl_kills":       0.0,
-                "early_death_rate":   100.0,
-                "death_cause_counts": {},
-                "outcome_counts":     {},
-            },
-            "diagnosis": {
-                "problem_code":         "avoidable_wall_self_deaths",
-                "dominant_cause":       "wall",
-                "avoidable_death_pct":  100.0,
-                "trapped_death_pct":    0.0,
-                "avg_wall_dist_death":  0.5,
-                "avg_enemy_dist_death": 10.0,
-                "hunter_deaths":        0,
-                "farmer_deaths":        0,
-                "findings":             ["Primera iteracion: sin datos del observer."],
-            }
-        }
+    # Tratar "null", "", "{}" como ausencia de datos
+    if not raw or raw in ("null", "{}"):
+        print("[MANAGER] INFO: Sin reporte del observer, usando defaults.", file=sys.stderr)
+        return _default_report()
     try:
-        return json.loads(raw)
+        parsed = json.loads(raw)
+        # json.loads("null") = None, proteger contra tipos no esperados
+        if not isinstance(parsed, dict):
+            print(f"[MANAGER] WARN: RUNNER_REPORT_JSON no es un objeto (tipo={type(parsed).__name__}), usando defaults.", file=sys.stderr)
+            return _default_report()
+        # Si el reporte existe pero le faltan secciones, completar con defaults
+        if "metrics" not in parsed or "diagnosis" not in parsed:
+            print("[MANAGER] WARN: reporte incompleto, usando defaults.", file=sys.stderr)
+            return _default_report()
+        return parsed
     except json.JSONDecodeError as e:
         print(f"[MANAGER] WARN: No se pudo parsear RUNNER_REPORT_JSON: {e}", file=sys.stderr)
-        return {}
+        return _default_report()
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +113,7 @@ IMPLEMENTATION_PLAN = {
         "instructions": (
             "PROBLEMA DIAGNOSTICADO: muertes evitables por muro o cuerpo propio "
             "(el agente tenia acciones seguras pero eligio una peligrosa). "
-            "CAMBIOS REQUERIDOS en generador/RLPlayer.py: "
+            "CAMBIOS REQUERIDOS en RLPlayer.py: "
             "(1) En get_state(): añadir 4 valores de distancia normalizada a los bordes: "
             "    north_dist=head[0]/game.rSize, south_dist=(game.rSize-1-head[0])/game.rSize, "
             "    east_dist=(game.cSize-1-head[1])/game.cSize, west_dist=head[1]/game.cSize. "
@@ -115,7 +132,7 @@ IMPLEMENTATION_PLAN = {
         "instructions": (
             "PROBLEMA DIAGNOSTICADO: el agente muere atrapado sin ninguna accion segura. "
             "Esto indica que la politica no anticipa el espacio libre futuro. "
-            "CAMBIOS REQUERIDOS en generador/RLPlayer.py: "
+            "CAMBIOS REQUERIDOS en RLPlayer.py: "
             "(1) Crear nuevo metodo count_reachable_cells(self, from_pos, max_depth=8): "
             "    Implementar un BFS simple desde 'from_pos' que cuente cuantas celdas "
             "    son alcanzables en max_depth pasos sin chocar con paredes ni serpientes. "
@@ -134,7 +151,7 @@ IMPLEMENTATION_PLAN = {
         "instructions": (
             "PROBLEMA DIAGNOSTICADO: el agente muere por colision con enemigos aunque estaban "
             "a menos de 4 celdas (detectables con un vistazo). "
-            "CAMBIOS REQUERIDOS en generador/RLPlayer.py: "
+            "CAMBIOS REQUERIDOS en RLPlayer.py: "
             "(1) En get_state(): añadir 4 flags booleanos de presencia enemiga en celdas "
             "    adyacentes directas: enemy_N, enemy_S, enemy_E, enemy_W. "
             "    Cada flag es True si la celda en esa direccion esta ocupada por "
@@ -156,7 +173,7 @@ IMPLEMENTATION_PLAN = {
         "instructions": (
             "PROBLEMA DIAGNOSTICADO: el agente muere mas veces cuando tiene fruit_score >= 120 "
             "(modo cazador). Esta siendo demasiado agresivo sin verificar que puede ganar el duelo. "
-            "CAMBIOS REQUERIDOS en generador/RLPlayer.py: "
+            "CAMBIOS REQUERIDOS en RLPlayer.py: "
             "(1) En find_goal(): cuando is_hunter=True, antes de retornar la posicion del rival "
             "    mas cercano, verificar que ese rival tiene fruit_score MENOR que el propio. "
             "    Si no hay rival mas debil disponible, retornar la fruta mas cercana como fallback "
@@ -175,7 +192,7 @@ IMPLEMENTATION_PLAN = {
         "instructions": (
             "PROBLEMA DIAGNOSTICADO: el agente sobrevive pero no gana. "
             "La politica es demasiado conservadora: farmea poco y no ataca cuando puede. "
-            "CAMBIOS REQUERIDOS en generador/RLPlayer.py: "
+            "CAMBIOS REQUERIDOS en RLPlayer.py: "
             "(1) En play(): aumentar el reward de frutas de +20 a +35 cuando la fruta "
             "    consumida lleva al agente a fruit_score >= 50 (reward extra por hito de puntuacion). "
             "(2) En play(): añadir reward de +10 cuando fruit_score supera 100 por primera vez "
@@ -191,7 +208,7 @@ IMPLEMENTATION_PLAN = {
         "summary": "Metricas aceptables. Afinar balance exploracion/explotacion.",
         "instructions": (
             "ESTADO: metricas aceptables sin un problema dominante. "
-            "CAMBIOS REQUERIDOS en generador/RLPlayer.py: "
+            "CAMBIOS REQUERIDOS en RLPlayer.py: "
             "(1) En __init__(): añadir parametro 'epsilon_decay=0.995' con valor por defecto. "
             "    Guardar como self.epsilon_decay = epsilon_decay. "
             "(2) Crear metodo decay_epsilon(self): "
@@ -220,10 +237,12 @@ def _select_plan(diagnosis: Dict[str, Any]) -> Dict[str, str]:
 
 
 def _build_tasks(
+    action: str,
     objective: str,
     iteration: int,
     max_iterations: int,
     base_branch: str,
+    target_branch: str,
     report: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
 
@@ -232,46 +251,63 @@ def _build_tasks(
     plan      = _select_plan(diagnosis)
     run_slug  = _slug(objective)
 
-    runner_branch      = f"ai/runner-{run_slug}-it{iteration}"
-    implementer_branch = f"ai/impl-{run_slug}-it{iteration}"
+    tasks = []
 
-    # Instruccion para el RUNNER:
-    # No toma decisiones de implementacion. Solo entrena + observa + reporta.
-    runner_instruction = (
-        f"Ejecuta las dos fases: "
-        f"(1) ENTRENAMIENTO: 'python trainRL.py --episodes 80' en el directorio generador. "
-        f"(2) OBSERVACION: 'python .github/scripts/run_and_observe.py {iteration}' "
-        f"    desde el directorio raiz del repo. "
-        f"El script run_and_observe.py evalua 30 partidas instrumentadas y genera "
-        f"runner-report.json con metricas + diagnostico cualitativo. "
-        f"Iteracion {iteration}/{max_iterations}. Objetivo: {objective}"
-    )
-
-    # Instruccion para el IMPLEMENTER:
-    # Basada en evidencia real del observer, no en suposiciones.
-    findings_text = " | ".join(diagnosis.get("findings", ["Sin datos del observer."]))
-    implementer_instruction = (
-        f"{plan['instructions']} "
-        f"EVIDENCIA DEL OBSERVER (ultima evaluacion): {findings_text} "
-        f"Iteracion {iteration}/{max_iterations}. Objetivo: {objective}"
-    )
-
-    return [
-        {
+    if action in ("start", ""):
+        # Initial run: dispatch runner on the base branch
+        runner_instruction = (
+            f"Fase Inicial. Ejecuta evaluación base: "
+            f"(1) Entrenamiento: 'python trainRL.py --episodes 80'. "
+            f"(2) Observacion: 'python .github/scripts/run_and_observe.py {iteration}'. "
+            f"Genera runner-report.json con metricas actuales. "
+            f"Iteracion {iteration}/{max_iterations}. Objetivo: {objective}"
+        )
+        tasks.append({
             "worker_role":       "runner",
-            "branch_name":       runner_branch,
+            "branch_name":       target_branch,
             "base_branch":       base_branch,
             "instructions":      runner_instruction,
-            "problem_diagnosed": diagnosis.get("problem_code", "unknown"),
-        },
-        {
+            "problem_diagnosed": "initial",
+            "ref":               target_branch,
+        })
+
+    elif action == "rl-metrics-ready":
+        # We have diagnostics: dispatch the implementer
+        findings_text = " | ".join(diagnosis.get("findings", ["Sin datos."]))
+        implementer_instruction = (
+            f"{plan['instructions']} "
+            f"EVIDENCIA DEL OBSERVER (ultima evaluacion): {findings_text} "
+            f"Iteracion {iteration}/{max_iterations}. Objetivo: {objective}"
+        )
+        implementer_branch = f"ai/impl-{run_slug}-it{iteration}"
+        tasks.append({
             "worker_role":       "implementer",
             "branch_name":       implementer_branch,
-            "base_branch":       base_branch,
+            "base_branch":       target_branch, # Create branch from the commit we just evaluated
             "instructions":      implementer_instruction,
             "problem_diagnosed": diagnosis.get("problem_code", "unknown"),
-        },
-    ]
+            "ref":               target_branch,
+        })
+
+    elif action == "rl-implementation-ready":
+        # Implementation is done: dispatch runner to validate it
+        runner_instruction = (
+            f"Evaluando código modificado por el implementer: "
+            f"(1) Entrenamiento: 'python trainRL.py --episodes 80'. "
+            f"(2) Observacion: 'python .github/scripts/run_and_observe.py {iteration}'. "
+            f"Comprueba los cambios y determina el nuevo problem_code (o consolidation). "
+            f"Iteracion {iteration}/{max_iterations}. Objetivo: {objective}"
+        )
+        tasks.append({
+            "worker_role":       "runner",
+            "branch_name":       target_branch,
+            "base_branch":       base_branch, # Keep original root base
+            "instructions":      runner_instruction,
+            "problem_diagnosed": "validation",
+            "ref":               target_branch,
+        })
+
+    return tasks
 
 
 # ---------------------------------------------------------------------------
@@ -285,9 +321,11 @@ def main() -> None:
         or "Improve RL Snake agent with manager-worker loop"
     )
 
+    action = os.environ.get("EVENT_ACTION", "start").strip()
     iteration      = _as_int(os.environ.get("ITERATION", "1"), 1)
     max_iterations = _as_int(os.environ.get("MAX_ITERATIONS", "3"), 3)
     base_branch    = os.environ.get("BASE_BRANCH", "main").strip() or "main"
+    target_branch  = os.environ.get("TARGET_BRANCH", base_branch).strip() or base_branch
 
     report         = _load_report()
     should_continue = iteration <= max_iterations
@@ -320,7 +358,7 @@ def main() -> None:
 
     if should_continue:
         payload["tasks"] = _build_tasks(
-            objective, iteration, max_iterations, base_branch, report
+            action, objective, iteration, max_iterations, base_branch, target_branch, report
         )
 
     print(json.dumps(payload, ensure_ascii=True))

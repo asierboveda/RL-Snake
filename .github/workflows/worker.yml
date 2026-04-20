@@ -72,12 +72,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy --quiet
 
+      - name: Cache Q-Table (runner only)
+        if: ${{ github.event.inputs.worker_role == 'runner' }}
+        uses: actions/cache@v4
+        with:
+          path: q_table_p0.pkl
+          key: qtable-${{ github.event.inputs.manager_run_id }}-it${{ github.event.inputs.iteration }}
+          restore-keys: |
+            qtable-${{ github.event.inputs.manager_run_id }}-
+
       - name: Phase 1 - Training (headless, runner)
         if: ${{ github.event.inputs.worker_role == 'runner' }}
         # trainRL.py: sin matplotlib, sin PIL, puro bucle de juego.
         # Entrena el agente y guarda q_table_p0.pkl en disco.
         run: |
-          cd generador
           python -u trainRL.py --episodes 80
 
       - name: Phase 2 - Observation and diagnosis (runner)
@@ -90,15 +98,14 @@ jobs:
         # La seccion 'diagnosis' incluye un 'problem_code' y 'findings' narrativos
         # que el manager usa para decidir que cambiar en RLPlayer.py.
         run: |
-          cd generador
-          python -u ../.github/scripts/run_and_observe.py ${{ github.event.inputs.iteration }} \
-            | tee ../worker-runner-output.log
+          python -u .github/scripts/run_and_observe.py ${{ github.event.inputs.iteration }} \
+            | tee worker-runner-output.log
 
       - name: Parse and expose runner report
         if: ${{ github.event.inputs.worker_role == 'runner' }}
         id: metrics
         run: |
-          REPORT=$(cat generador/runner-report.json 2>/dev/null || echo '{}')
+          REPORT=$(cat runner-report.json 2>/dev/null || echo '{}')
           echo "runner_report=$REPORT" >> "$GITHUB_OUTPUT"
 
       - name: Upload runner artifacts
@@ -108,7 +115,8 @@ jobs:
           name: runner-results-${{ github.run_id }}-it${{ github.event.inputs.iteration }}
           path: |
             worker-runner-output.log
-            generador/runner-report.json
+            runner-report.json
+            q_table_p0.pkl
 
       # -----------------------------------------------------------------------
       # IMPLEMENTER WORKER
@@ -136,7 +144,7 @@ jobs:
         # Usa 'gh copilot suggest' para obtener una respuesta en modo codigo.
         run: |
           AGENT_FILE=".github/agents/rl-worker.md"
-          RLPLAYER_CURRENT="generador/RLPlayer.py"
+          RLPLAYER_CURRENT="RLPlayer.py"
 
           if [ ! -f "$AGENT_FILE" ]; then
             echo "ERROR: Missing agent profile $AGENT_FILE"
@@ -178,7 +186,7 @@ jobs:
           sed -n '/^```\(python\|py\)/,/^```$/p' raw_response.txt | grep -v '^```' > extracted_rlplayer.py || true
           if [ -s extracted_rlplayer.py ]; then
             echo "Implementer: bloque Python extraido ($(wc -l < extracted_rlplayer.py) lineas)."
-            mv extracted_rlplayer.py generador/RLPlayer.py
+            mv extracted_rlplayer.py RLPlayer.py
           else
             echo "WARN: No se pudo extraer bloque Python. El implementer no realizo cambios."
             cat raw_response.txt
@@ -201,13 +209,13 @@ jobs:
           ${{ github.event.inputs.instructions }}
 
           ## Archivos modificados
-          - generador/RLPlayer.py
+          - RLPlayer.py
           EOF
 
       - name: Commit and push implementation changes
         if: ${{ github.event.inputs.worker_role == 'implementer' }}
         run: |
-          git add generador/RLPlayer.py docs/ai-traces/ || true
+          git add RLPlayer.py docs/ai-traces/ || true
           if ! git diff-index --quiet HEAD; then
             git commit \
               -m "feat(ai-impl): mejora RL iteracion ${{ github.event.inputs.iteration }}" \

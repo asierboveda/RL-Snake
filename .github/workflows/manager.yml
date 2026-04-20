@@ -15,6 +15,7 @@ on:
         required: false
         default: "main"
   repository_dispatch:
+    # reacciona a los dos eventos para crear el ciclo manager -> worker -> manager -> worker
     types: [rl-metrics-ready, rl-implementation-ready]
   issues:
     types: [opened, labeled]
@@ -27,7 +28,7 @@ jobs:
   dispatch-workers:
     if: |
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'repository_dispatch' ||
+      (github.event_name == 'repository_dispatch' && github.event.action == 'rl-metrics-ready') ||
       (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'ai-dispatch'))
     runs-on: ubuntu-latest
     permissions:
@@ -51,23 +52,30 @@ jobs:
         shell: bash
         run: |
           EVENT_NAME="${{ github.event_name }}"
+          EVENT_ACTION=""
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            EVENT_ACTION="start"
             OBJECTIVE='${{ github.event.inputs.objective }}'
             ITERATION=1
             MAX_ITER='${{ github.event.inputs.max_iterations }}'
             BASE_BRANCH='${{ github.event.inputs.base_branch }}'
+            TARGET_BRANCH='${{ github.event.inputs.base_branch }}'
             METRICS='{}'
           elif [ "$EVENT_NAME" = "repository_dispatch" ]; then
+            EVENT_ACTION="${{ github.event.action }}"
             OBJECTIVE='${{ github.event.client_payload.objective }}'
             ITERATION='${{ github.event.client_payload.next_iteration }}'
             MAX_ITER='${{ github.event.client_payload.max_iterations }}'
             BASE_BRANCH='${{ github.event.client_payload.base_branch }}'
+            TARGET_BRANCH='${{ github.event.client_payload.branch_name }}'
             METRICS='${{ toJson(github.event.client_payload.runner_report) }}'
           else
+            EVENT_ACTION="start"
             OBJECTIVE='${{ github.event.issue.title }} - ${{ github.event.issue.body }}'
             ITERATION=1
             MAX_ITER=3
             BASE_BRANCH='main'
+            TARGET_BRANCH='main'
             METRICS='{}'
           fi
 
@@ -76,21 +84,26 @@ jobs:
           if [ -z "$ITERATION" ]; then ITERATION=1; fi
           if [ -z "$MAX_ITER" ]; then MAX_ITER=3; fi
           if [ -z "$BASE_BRANCH" ]; then BASE_BRANCH=main; fi
+          if [ -z "$TARGET_BRANCH" ]; then TARGET_BRANCH="$BASE_BRANCH"; fi
           if [ -z "$METRICS" ]; then METRICS='{}'; fi
 
+          echo "event_action=$EVENT_ACTION" >> "$GITHUB_OUTPUT"
           echo "objective=$OBJECTIVE" >> "$GITHUB_OUTPUT"
           echo "iteration=$ITERATION" >> "$GITHUB_OUTPUT"
           echo "max_iterations=$MAX_ITER" >> "$GITHUB_OUTPUT"
           echo "base_branch=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "target_branch=$TARGET_BRANCH" >> "$GITHUB_OUTPUT"
           echo "runner_report_json=$METRICS" >> "$GITHUB_OUTPUT"
 
       - name: Run manager planner
         id: plan
         env:
+          EVENT_ACTION: ${{ steps.ctx.outputs.event_action }}
           OBJECTIVE: ${{ steps.ctx.outputs.objective }}
           ITERATION: ${{ steps.ctx.outputs.iteration }}
           MAX_ITERATIONS: ${{ steps.ctx.outputs.max_iterations }}
           BASE_BRANCH: ${{ steps.ctx.outputs.base_branch }}
+          TARGET_BRANCH: ${{ steps.ctx.outputs.target_branch }}
           RUNNER_REPORT_JSON: ${{ steps.ctx.outputs.runner_report_json }}
         run: |
           PLAN_JSON=$(python .github/scripts/invoke_manager.py)
@@ -108,8 +121,11 @@ jobs:
             BRANCH_NAME=$(echo "$task" | jq -r '.branch_name')
             BASE_BRANCH=$(echo "$task" | jq -r '.base_branch')
             INSTRUCTIONS=$(echo "$task" | jq -r '.instructions')
+            REF=$(echo "$task" | jq -r '.ref')
+            if [ -z "$REF" ] || [ "$REF" = "null" ]; then REF="$BASE_BRANCH"; fi
 
             gh workflow run worker.yml \
+              --ref "$REF" \
               -f worker_role="$ROLE" \
               -f branch_name="$BRANCH_NAME" \
               -f base_branch="$BASE_BRANCH" \
