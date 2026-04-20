@@ -1,80 +1,154 @@
 name: Manager Orchestrator
 
 on:
+  workflow_dispatch:
+    inputs:
+      objective:
+        description: "Objetivo global del ciclo RL"
+        required: true
+      max_iterations:
+        description: "Número máximo de iteraciones manager-worker"
+        required: false
+        default: "3"
+      base_branch:
+        description: "Rama base para workers"
+        required: false
+        default: "main"
+  repository_dispatch:
+    types: [rl-metrics-ready, rl-implementation-ready]
   issues:
     types: [opened, labeled]
 
+concurrency:
+  group: manager-${{ github.ref || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   dispatch-workers:
-    if: contains(github.event.issue.labels.*.name, 'ai-dispatch')
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'repository_dispatch' ||
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'ai-dispatch'))
     runs-on: ubuntu-latest
     permissions:
       issues: write
       contents: write
       actions: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Run Manager Analysis (AI Execution)
-        id: analysis
+      - name: Resolve manager context
+        id: ctx
+        shell: bash
+        run: |
+          EVENT_NAME="${{ github.event_name }}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            OBJECTIVE='${{ github.event.inputs.objective }}'
+            ITERATION=1
+            MAX_ITER='${{ github.event.inputs.max_iterations }}'
+            BASE_BRANCH='${{ github.event.inputs.base_branch }}'
+            METRICS='{}'
+          elif [ "$EVENT_NAME" = "repository_dispatch" ]; then
+            OBJECTIVE='${{ github.event.client_payload.objective }}'
+            ITERATION='${{ github.event.client_payload.next_iteration }}'
+            MAX_ITER='${{ github.event.client_payload.max_iterations }}'
+            BASE_BRANCH='${{ github.event.client_payload.base_branch }}'
+            METRICS='${{ toJson(github.event.client_payload.metrics) }}'
+          else
+            OBJECTIVE='${{ github.event.issue.title }} - ${{ github.event.issue.body }}'
+            ITERATION=1
+            MAX_ITER=3
+            BASE_BRANCH='main'
+            METRICS='{}'
+          fi
+
+          if [ -z "$OBJECTIVE" ]; then OBJECTIVE="Improve RL Snake agent"; fi
+          OBJECTIVE=$(echo "$OBJECTIVE" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g')
+          if [ -z "$ITERATION" ]; then ITERATION=1; fi
+          if [ -z "$MAX_ITER" ]; then MAX_ITER=3; fi
+          if [ -z "$BASE_BRANCH" ]; then BASE_BRANCH=main; fi
+          if [ -z "$METRICS" ]; then METRICS='{}'; fi
+
+          echo "objective=$OBJECTIVE" >> "$GITHUB_OUTPUT"
+          echo "iteration=$ITERATION" >> "$GITHUB_OUTPUT"
+          echo "max_iterations=$MAX_ITER" >> "$GITHUB_OUTPUT"
+          echo "base_branch=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "metrics_json=$METRICS" >> "$GITHUB_OUTPUT"
+
+      - name: Run manager planner
+        id: plan
         env:
-          ISSUE_BODY: ${{ github.event.issue.body }}
+          OBJECTIVE: ${{ steps.ctx.outputs.objective }}
+          ITERATION: ${{ steps.ctx.outputs.iteration }}
+          MAX_ITERATIONS: ${{ steps.ctx.outputs.max_iterations }}
+          BASE_BRANCH: ${{ steps.ctx.outputs.base_branch }}
+          METRICS_JSON: ${{ steps.ctx.outputs.metrics_json }}
+        run: |
+          PLAN_JSON=$(python .github/scripts/invoke_manager.py)
+          echo "plan_json=$PLAN_JSON" >> "$GITHUB_OUTPUT"
+          echo "$PLAN_JSON" | jq .
+
+      - name: Dispatch tasks to worker workflow
+        if: ${{ fromJson(steps.plan.outputs.plan_json).continue }}
+        env:
+          PLAN_JSON: ${{ steps.plan.outputs.plan_json }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Instalar la extensión de Copilot en el runner del Manager
-          gh extension install github/gh-copilot
-          
-          # Captura estricta del stdout
-          JSON_OUT=$(python .github/scripts/invoke_manager.py)
-          echo "json_payload=$JSON_OUT" >> $GITHUB_OUTPUT
+          echo "$PLAN_JSON" | jq -c '.tasks[]' | while read -r task; do
+            ROLE=$(echo "$task" | jq -r '.worker_role')
+            BRANCH_NAME=$(echo "$task" | jq -r '.branch_name')
+            BASE_BRANCH=$(echo "$task" | jq -r '.base_branch')
+            INSTRUCTIONS=$(echo "$task" | jq -r '.instructions')
 
-      - name: Dispatch Tasks to Workers
-        env:
-          JSON_PAYLOAD: ${{ steps.analysis.outputs.json_payload }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "$JSON_PAYLOAD" | jq -c '.tasks[]' | while read i; do
-            WORKER_TYPE=$(echo "$i" | jq -r '.worker_type')
-            BRANCH_NAME=$(echo "$i" | jq -r '.branch_name')
-            INSTRUCTIONS=$(echo "$i" | jq -r '.instructions')
-            
             gh workflow run worker.yml \
-              -f worker_type="$WORKER_TYPE" \
+              -f worker_role="$ROLE" \
               -f branch_name="$BRANCH_NAME" \
+              -f base_branch="$BASE_BRANCH" \
               -f instructions="$INSTRUCTIONS" \
+              -f objective="$(echo "$PLAN_JSON" | jq -r '.objective')" \
+              -f iteration="$(echo "$PLAN_JSON" | jq -r '.iteration')" \
+              -f max_iterations="$(echo "$PLAN_JSON" | jq -r '.max_iterations')" \
               -f manager_run_id="${{ github.run_id }}"
           done
 
-      - name: Automated Traceability (Manager)
+      - name: Persist manager trace
         if: always()
         continue-on-error: true
         run: |
           mkdir -p docs/ai-traces
           TRACE_FILE="docs/ai-traces/manager-${{ github.run_id }}.md"
-          
-          cat << 'EOF' > "$TRACE_FILE"
+
+          cat <<EOF > "$TRACE_FILE"
           # Manager Execution Trace (Run ID: ${{ github.run_id }})
-          **Triggered by Issue:** #${{ github.event.issue.number }}
-          
-          ## Generated JSON Plan
-          ```json
-          ${{ steps.analysis.outputs.json_payload }}
-          ```
+          **Event:** ${{ github.event_name }}
+          **Objective:** ${{ steps.ctx.outputs.objective }}
+          **Iteration:** ${{ steps.ctx.outputs.iteration }} / ${{ steps.ctx.outputs.max_iterations }}
+          **Base branch:** ${{ steps.ctx.outputs.base_branch }}
+
+          ## Input metrics
+          \`\`\`json
+          ${{ steps.ctx.outputs.metrics_json }}
+          \`\`\`
+
+          ## Generated plan
+          \`\`\`json
+          ${{ steps.plan.outputs.plan_json }}
+          \`\`\`
           EOF
-          
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "$TRACE_FILE"
-          git commit -m "docs(ai-trace): manager run ${{ github.run_id }}"
-          
-          # Estrategia de reintento para evitar Race Conditions en Git
+          git commit -m "docs(ai-trace): manager run ${{ github.run_id }}" -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>" || exit 0
           for i in {1..5}; do
             git pull --rebase origin main && git push origin main && break || sleep $((RANDOM % 5 + 3))
           done

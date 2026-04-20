@@ -3,17 +3,29 @@ name: Worker Execution
 on:
   workflow_dispatch:
     inputs:
-      worker_type:
-        description: 'Type of worker executing the task'
+      worker_role:
+        description: "Role of worker (implementer|runner)"
         required: true
       branch_name:
-        description: 'Target branch for the code changes'
+        description: "Target branch for code changes"
+        required: true
+      base_branch:
+        description: "Base branch to branch from"
         required: true
       instructions:
-        description: 'Specific context/instructions assigned to the worker'
+        description: "Specific manager instructions for this worker"
+        required: true
+      objective:
+        description: "Shared objective from manager"
+        required: true
+      iteration:
+        description: "Current loop iteration"
+        required: true
+      max_iterations:
+        description: "Maximum loop iterations"
         required: true
       manager_run_id:
-        description: 'Run ID of the orchestrator'
+        description: "Run ID of manager orchestrator"
         required: true
 
 jobs:
@@ -22,85 +34,325 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      
+      actions: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+        with:
+          fetch-depth: 0
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-      - name: Setup Isolation Branch
+
+      - name: Setup worker branch
+        if: ${{ github.event.inputs.worker_role == 'implementer' }}
         run: |
-          git checkout -b ${{ github.event.inputs.branch_name }}
-          
-      - name: Generate Code (AI Execution)
+          git fetch origin "${{ github.event.inputs.base_branch }}"
+          git checkout "${{ github.event.inputs.base_branch }}"
+          git checkout -B "${{ github.event.inputs.branch_name }}"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies for runner
+        if: ${{ github.event.inputs.worker_role == 'runner' }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy torch matplotlib pillow --quiet
+
+      - name: Implementer worker execution
+        if: ${{ github.event.inputs.worker_role == 'implementer' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.COPILOT_PAT != '' && secrets.COPILOT_PAT || secrets.GITHUB_TOKEN }}
         run: |
-          AGENT_FILE=".github/agents/${{ github.event.inputs.worker_type }}-worker.md"
+          AGENT_FILE=".github/agents/rl-worker.md"
           if [ ! -f "$AGENT_FILE" ]; then
-            echo "Error: Agent profile $AGENT_FILE does not exist."
+            echo "Missing agent profile: $AGENT_FILE"
             exit 1
           fi
-          
-          cat $AGENT_FILE > current_prompt.txt
-          echo -e "\n\nINSTRUCCIONES DE TAREA:\n${{ github.event.inputs.instructions }}" >> current_prompt.txt
-          
-          # Simulador de auto-aplicación vía Copilot CLI o herramientas derivadas
-          # ej: cat current_prompt.txt | gh copilot suggest --apply
-          echo "/* AI Worker: ${{ github.event.inputs.worker_type }} */" > generated_component.txt
-          
-      - name: Commit and Push Task Changes
+
+          cat "$AGENT_FILE" > current_prompt.txt
+          cat <<EOF >> current_prompt.txt
+
+          # CONTEXTO DE ORQUESTACIÓN
+          Objective: ${{ github.event.inputs.objective }}
+          Iteration: ${{ github.event.inputs.iteration }}/${{ github.event.inputs.max_iterations }}
+          Branch: ${{ github.event.inputs.branch_name }}
+
+          # INSTRUCCIONES DEL MANAGER
+          ${{ github.event.inputs.instructions }}
+          EOF
+
+          gh extension install github/gh-copilot || true
+          gh copilot explain "$(cat current_prompt.txt)" > raw_response.txt
+          sed -n '/^```\(python\|py\)/,/^```/p' raw_response.txt | grep -v '^```' > extracted_rlplayer.py || true
+          if [ -s extracted_rlplayer.py ]; then
+            mv extracted_rlplayer.py RLPlayer.py
+          else
+            echo "No python block extracted from Copilot response; skipping overwrite."
+            rm -f extracted_rlplayer.py
+          fi
+
+      - name: Commit and push implementation changes
+        if: ${{ github.event.inputs.worker_role == 'implementer' }}
         run: |
           git add .
           if ! git diff-index --quiet HEAD; then
-            git commit -m "feat(ai-worker): execution of ${{ github.event.inputs.worker_type }} task"
-            git push -u origin ${{ github.event.inputs.branch_name }}
+            git commit \
+              -m "feat(ai-worker): implement iteration ${{ github.event.inputs.iteration }} on ${{ github.event.inputs.branch_name }}" \
+              -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+            git push -u origin "${{ github.event.inputs.branch_name }}"
           else
-            echo "No changes were generated."
-            exit 0
+            echo "No implementation changes generated."
           fi
-          
-      - name: Create Pull Request
+
+      - name: Create or update implementation PR
+        if: ${{ github.event.inputs.worker_role == 'implementer' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create \
-            --title "🤖 AI Task (${{ github.event.inputs.worker_type }}): ${{ github.event.inputs.branch_name }}" \
-            --body "Generado por AI Harness.
-            **Manager Run:** ${{ github.event.inputs.manager_run_id }}
-            **Instrucciones recibidas:** ${{ github.event.inputs.instructions }}" \
-            --base main \
-            --head ${{ github.event.inputs.branch_name }}
-            
-      - name: Automated Traceability (Worker)
+          EXISTING_PR=$(gh pr list --base "${{ github.event.inputs.base_branch }}" --head "${{ github.event.inputs.branch_name }}" --json number -q '.[0].number')
+          if [ -z "$EXISTING_PR" ]; then
+            gh pr create \
+              --title "🤖 RL implementer iter ${{ github.event.inputs.iteration }}: ${{ github.event.inputs.branch_name }}" \
+              --body "Manager run: ${{ github.event.inputs.manager_run_id }}
+              Objective: ${{ github.event.inputs.objective }}
+              Instructions: ${{ github.event.inputs.instructions }}" \
+              --base "${{ github.event.inputs.base_branch }}" \
+              --head "${{ github.event.inputs.branch_name }}"
+          else
+            gh pr comment "$EXISTING_PR" --body "Nuevo ciclo ejecutado por manager run ${{ github.event.inputs.manager_run_id }} (iteración ${{ github.event.inputs.iteration }})."
+          fi
+
+      - name: Runner worker execution (live logs)
+        if: ${{ github.event.inputs.worker_role == 'runner' }}
+        run: |
+          python -u - <<'PY' | tee worker-runner-output.log
+          import json
+          import random
+          from collections import Counter
+          from pathlib import Path
+
+          import numpy as np
+
+          from GreedyPlayer import GreedyPlayer
+          from RLPlayer import RLPlayer
+          from SnakeGame import SnakeGame
+
+          TURN_LIMIT = 900
+          TRAIN_EPISODES = 40
+          EVAL_GAMES = 30
+          BASE_SEED = 1000 + int("${{ github.event.inputs.iteration }}")
+          MIN_SCORING_FOR_WINNING = 120
+
+          def classify_rl_death(game, rl_snake):
+              if rl_snake.isAlive:
+                  return "alive"
+              head = rl_snake.body[0]
+              if head[0] < 0 or head[0] >= game.rSize or head[1] < 0 or head[1] >= game.cSize:
+                  return "wall"
+              if any(head[:2] == piece[:2] for piece in rl_snake.body[1:]):
+                  return "self"
+              for i, s in enumerate(game.snakes):
+                  if i == 0:
+                      continue
+                  if any(head[:2] == piece[:2] for piece in s.body):
+                      return "enemy"
+              return "battle_or_unknown"
+
+          def classify_outcome(game):
+              snake_labels = ["RLPlayer", "Greedy-B", "Greedy-R", "Greedy-Y"]
+              alive = [(i, s) for i, s in enumerate(game.snakes) if s.isAlive]
+              if len(alive) == 1:
+                  return snake_labels[alive[0][0]], "single_alive"
+              if len(alive) == 0:
+                  return "No winner", "all_dead"
+              scores = game.getScores()
+              max_score = max(scores)
+              if max_score < MIN_SCORING_FOR_WINNING:
+                  return "No winner", "draw_low_score"
+              winners = [i for i, sc in enumerate(scores) if sc == max_score]
+              if len(winners) == 1:
+                  return snake_labels[winners[0]], "score_winner"
+              return "No winner", "draw_tie"
+
+          def run_game(seed, training_enabled):
+              random.seed(seed)
+              np.random.seed(seed)
+              game = SnakeGame()
+              for _ in range(5):
+                  game.addRandomFruit()
+              game.setNoise(0.0)
+
+              rl_player = RLPlayer(0, "G", game, training_enabled=training_enabled)
+              players = [
+                  rl_player,
+                  GreedyPlayer(1, "B", game),
+                  GreedyPlayer(2, "R", game),
+                  GreedyPlayer(3, "Y", game),
+              ]
+
+              while game.turn < TURN_LIMIT and game.gameIsAlive():
+                  dirs = [p.play(None) for p in players]
+                  for idx, direction in enumerate(dirs):
+                      game.movePlayer(idx, direction)
+                  game.checkMovements()
+                  game.update()
+                  game.turn += 1
+
+              rl_player.end_episode()
+              if training_enabled:
+                  rl_player.save_model()
+
+              rl_snake = game.snakes[0]
+              winner, outcome_reason = classify_outcome(game)
+              death_reason = classify_rl_death(game, rl_snake)
+              rl_score = rl_snake.getScore()
+              rl_fruit_score = rl_snake.getFruitScore()
+              rl_kills = max(0, (rl_score - rl_fruit_score) // 30)
+
+              return {
+                  "turns": game.turn,
+                  "rl_alive": rl_snake.isAlive,
+                  "rl_score": rl_score,
+                  "rl_fruit_score": rl_fruit_score,
+                  "rl_kills": rl_kills,
+                  "winner": winner,
+                  "outcome_reason": outcome_reason,
+                  "rl_death_reason": death_reason,
+              }
+
+          print("=== TRAINING PHASE ===")
+          for ep in range(TRAIN_EPISODES):
+              result = run_game(BASE_SEED + ep, training_enabled=True)
+              if ep == 0 or (ep + 1) % 10 == 0:
+                  print(
+                      f"[train] ep={ep+1}/{TRAIN_EPISODES} turns={result['turns']} "
+                      f"score={result['rl_score']} fruit={result['rl_fruit_score']} "
+                      f"kills={result['rl_kills']} alive={result['rl_alive']}"
+                  )
+
+          print("=== EVAL PHASE ===")
+          eval_results = []
+          for i in range(EVAL_GAMES):
+              result = run_game(BASE_SEED + 10000 + i, training_enabled=False)
+              eval_results.append(result)
+              print(
+                  f"[eval] game={i+1}/{EVAL_GAMES} turns={result['turns']} "
+                  f"alive={result['rl_alive']} winner={result['winner']} "
+                  f"outcome={result['outcome_reason']} rl_death={result['rl_death_reason']} "
+                  f"score={result['rl_score']} fruit={result['rl_fruit_score']} kills={result['rl_kills']}"
+              )
+
+          wins = sum(1 for r in eval_results if r["winner"] == "RLPlayer")
+          early_deaths = sum(1 for r in eval_results if (not r["rl_alive"]) and r["turns"] < 60)
+          death_counts = Counter(r["rl_death_reason"] for r in eval_results)
+          outcome_counts = Counter(r["outcome_reason"] for r in eval_results)
+
+          metrics = {
+              "rl_win_rate": (wins / EVAL_GAMES) * 100.0,
+              "avg_turns": float(np.mean([r["turns"] for r in eval_results])),
+              "avg_rl_score": float(np.mean([r["rl_score"] for r in eval_results])),
+              "avg_rl_fruit_score": float(np.mean([r["rl_fruit_score"] for r in eval_results])),
+              "avg_rl_kills": float(np.mean([r["rl_kills"] for r in eval_results])),
+              "early_death_rate": (early_deaths / EVAL_GAMES) * 100.0,
+              "death_cause_counts": dict(death_counts),
+              "outcome_counts": dict(outcome_counts),
+          }
+
+          Path("runner-metrics.json").write_text(json.dumps(metrics), encoding="utf-8")
+          print("=== METRICS JSON ===")
+          print(json.dumps(metrics))
+          PY
+
+      - name: Parse runner metrics
+        if: ${{ github.event.inputs.worker_role == 'runner' }}
+        id: metrics
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          metrics = json.loads(Path("runner-metrics.json").read_text(encoding="utf-8"))
+          print(json.dumps(metrics))
+          PY
+          echo "metrics_json=$(cat runner-metrics.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload runner artifacts
+        if: ${{ github.event.inputs.worker_role == 'runner' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: runner-results-${{ github.run_id }}
+          path: |
+            worker-runner-output.log
+            runner-metrics.json
+
+      - name: Send feedback to manager
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          METRICS_JSON: ${{ steps.metrics.outputs.metrics_json }}
+        run: |
+          if [ "${{ github.event.inputs.worker_role }}" = "runner" ]; then
+            EVENT_TYPE="rl-metrics-ready"
+            METRICS_PAYLOAD=${METRICS_JSON:-'{}'}
+          else
+            EVENT_TYPE="rl-implementation-ready"
+            METRICS_PAYLOAD='{}'
+          fi
+          NEXT_ITER=$(( ${{ github.event.inputs.iteration }} + 1 ))
+
+          gh api repos/${{ github.repository }}/dispatches \
+            --method POST \
+            -f event_type="$EVENT_TYPE" \
+            -f client_payload="$(jq -cn \
+              --arg objective "${{ github.event.inputs.objective }}" \
+              --argjson next_iteration "$NEXT_ITER" \
+              --arg max_iterations "${{ github.event.inputs.max_iterations }}" \
+              --arg base_branch "${{ github.event.inputs.base_branch }}" \
+              --arg manager_run_id "${{ github.event.inputs.manager_run_id }}" \
+              --arg worker_role "${{ github.event.inputs.worker_role }}" \
+              --arg branch_name "${{ github.event.inputs.branch_name }}" \
+              --argjson metrics "$METRICS_PAYLOAD" \
+              '{objective:$objective,next_iteration:$next_iteration,max_iterations:($max_iterations|tonumber),base_branch:$base_branch,manager_run_id:$manager_run_id,worker_role:$worker_role,branch_name:$branch_name,metrics:$metrics}')"
+
+      - name: Persist worker trace
         if: always()
         continue-on-error: true
         run: |
-          # Cambiamos a main para persistir la traza y evitar mezclar documentación en el PR
+          git fetch origin main
           git checkout main
-          
           mkdir -p docs/ai-traces
-          TRACE_FILE="docs/ai-traces/worker-${{ github.event.inputs.worker_type }}-${{ github.run_id }}.md"
-          
-          cat << 'EOF' > "$TRACE_FILE"
-          # Worker Execution Trace
-          **Worker Type:** ${{ github.event.inputs.worker_type }}
+          TRACE_FILE="docs/ai-traces/worker-${{ github.event.inputs.worker_role }}-${{ github.run_id }}.md"
+
+          cat <<EOF > "$TRACE_FILE"
+          # Worker Execution Trace (Run ID: ${{ github.run_id }})
+          **Role:** ${{ github.event.inputs.worker_role }}
           **Branch:** ${{ github.event.inputs.branch_name }}
-          **Manager Run ID:** ${{ github.event.inputs.manager_run_id }}
+          **Base branch:** ${{ github.event.inputs.base_branch }}
+          **Manager run:** ${{ github.event.inputs.manager_run_id }}
+          **Iteration:** ${{ github.event.inputs.iteration }} / ${{ github.event.inputs.max_iterations }}
           **Status:** ${{ job.status }}
-          
+
+          ## Objective
+          ${{ github.event.inputs.objective }}
+
           ## Instructions
           ${{ github.event.inputs.instructions }}
+
+          ## Metrics
+          \`\`\`json
+          ${{ steps.metrics.outputs.metrics_json || '{}' }}
+          \`\`\`
           EOF
-          
+
           git add "$TRACE_FILE"
-          git commit -m "docs(ai-trace): worker ${{ github.event.inputs.worker_type }} run ${{ github.run_id }}"
-          
-          # Estrategia de reintento frente a concurrencia extrema de múltiples workers
+          git commit -m "docs(ai-trace): worker ${{ github.event.inputs.worker_role }} run ${{ github.run_id }}" -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>" || exit 0
           for i in {1..5}; do
             git pull --rebase origin main && git push origin main && break || sleep $((RANDOM % 5 + 3))
           done
