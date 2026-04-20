@@ -2,11 +2,11 @@ name: Manager Orchestrator
 
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
 
 jobs:
   dispatch-workers:
-    if: github.event.label.name == 'ai-dispatch'
+    if: contains(github.event.issue.labels.*.name, 'ai-dispatch')
     runs-on: ubuntu-latest
     permissions:
       issues: write
