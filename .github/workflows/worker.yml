@@ -183,14 +183,46 @@ jobs:
           gh copilot suggest -t shell "$(cat implementer_prompt.txt)" > raw_response.txt 2>&1 || \
             gh copilot explain "$(cat implementer_prompt.txt)" > raw_response.txt 2>&1 || true
 
-          sed -n '/^```\(python\|py\)/,/^```$/p' raw_response.txt | grep -v '^```' > extracted_rlplayer.py || true
-          if [ -s extracted_rlplayer.py ]; then
-            echo "Implementer: bloque Python extraido ($(wc -l < extracted_rlplayer.py) lineas)."
-            mv extracted_rlplayer.py RLPlayer.py
-          else
-            echo "WARN: No se pudo extraer bloque Python. El implementer no realizo cambios."
-            cat raw_response.txt
+          # Extraer solo el primer bloque ```python ... ``` para evitar basura de CLI.
+          awk '
+            BEGIN {capture=0; found=0}
+            /^```(python|py)[[:space:]]*$/ { if (found==0) {capture=1; found=1; next} }
+            /^```[[:space:]]*$/ { if (capture==1) {capture=0; exit} }
+            capture==1 { print }
+          ' raw_response.txt > candidate_rlplayer.py
+
+          if [ ! -s candidate_rlplayer.py ]; then
+            echo "ERROR: No se pudo extraer un bloque Python valido para RLPlayer.py"
+            tail -n 80 raw_response.txt || true
+            exit 1
           fi
+
+          # Guardrail: rechazar respuestas contaminadas por texto no-codigo del prompt/CLI.
+          if grep -Eiq 'Iteracion:|Objetivo:|# TAREA|Sin texto explicativo fuera del bloque de codigo|For non-interactive mode|Try '\''copilot --help'\''' candidate_rlplayer.py; then
+            echo "ERROR: candidate_rlplayer.py contiene texto no-codigo (prompt/CLI contamination)."
+            sed -n '1,220p' candidate_rlplayer.py
+            exit 1
+          fi
+
+          if grep -q '```' candidate_rlplayer.py; then
+            echo "ERROR: candidate_rlplayer.py contiene fences Markdown."
+            sed -n '1,120p' candidate_rlplayer.py
+            exit 1
+          fi
+
+          if ! grep -Eq '^[[:space:]]*class[[:space:]]+RLPlayer\b' candidate_rlplayer.py; then
+            echo "ERROR: candidate_rlplayer.py no contiene 'class RLPlayer'."
+            sed -n '1,120p' candidate_rlplayer.py
+            exit 1
+          fi
+
+          if ! python -m py_compile candidate_rlplayer.py; then
+            echo "ERROR: candidate_rlplayer.py tiene errores de sintaxis."
+            exit 1
+          fi
+
+          echo "Implementer: candidate_rlplayer.py validado ($(wc -l < candidate_rlplayer.py) lineas)."
+          mv candidate_rlplayer.py RLPlayer.py
 
       - name: Write implementation trace
         if: ${{ github.event.inputs.worker_role == 'implementer' }}
