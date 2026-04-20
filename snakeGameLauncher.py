@@ -34,7 +34,7 @@ for _ in range(5):
 	sg.addRandomFruit()
 sg.setNoise(noiseLevel)
 
-playerA=RLPlayer(0,'G',sg)
+playerA=RLPlayer(0,'G',sg, epsilon=0.0)  # Modo Inferencia: epsilon=0 → sin exploración aleatoria
 playerB=GreedyPlayer(1,'B',sg)
 playerC=GreedyPlayer(2,'R',sg)
 playerD=GreedyPlayer(3,'Y',sg)

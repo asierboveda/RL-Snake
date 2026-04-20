@@ -4,10 +4,11 @@ import pickle
 
 class RLPlayer:
 
-	def __init__(self, playerID, color, game, epsilon=0.1, alpha=0.1, gamma=0.9):
+	def __init__(self, playerID, color, game, epsilon=0.1, alpha=0.1, gamma=0.9, training_enabled=True):
 		self.playerID = playerID
 		self.color = color
 		self.game = game
+		self.training_enabled = training_enabled  # False = modo evaluacion (sin actualizaciones Q)
 		
 		# Hiperparámetros de Q-Learning (Markov Decision Process)
 		self.epsilon = epsilon # Tasa de exploración
@@ -84,10 +85,31 @@ class RLPlayer:
 		return self.q_table[state]
 
 	def update_q_table(self, state, action, reward, next_state):
+		# Solo actualiza si estamos en modo entrenamiento
+		if not self.training_enabled:
+			return
 		current_q = self.get_q_values(state)[action]
 		max_future_q = 0 if next_state is None else max(self.get_q_values(next_state).values())
 		new_q = current_q + self.alpha * (reward + self.gamma * max_future_q - current_q)
 		self.q_table[state][action] = new_q
+
+	def end_episode(self):
+		"""
+		Llamado por el runner al terminar cada episodio.
+		Aplica la penalizacion terminal si el agente murio y no la proceso aun.
+		"""
+		my_snake = self.game.snakes[self.playerID]
+		if not my_snake.isAlive and self.last_state is not None:
+			self.update_q_table(self.last_state, self.last_action, -100, None)
+			self.last_state = None
+			self.last_action = None
+
+	def save_model(self):
+		"""
+		Alias de save_q_table() para que el runner use una API uniforme
+		independientemente de si el agente usa Q-Table o una red neuronal.
+		"""
+		self.save_q_table()
 
 	def get_safe_actions(self, head):
 		safe = []
@@ -112,10 +134,10 @@ class RLPlayer:
 		current_score = my_snake.getScore()
 		
 		# Calcular recompensa del paso anterior (Aprendizaje Online)
-		if self.last_state is not None:
-			reward = -0.1 # Penalización leve base para motivar la rapidez y encontrar rutas cortas
+		if self.last_state is not None and self.training_enabled:
+			reward = -0.1 # Penalizacion leve base para motivar la rapidez y encontrar rutas cortas
 			if current_score > self.last_score:
-				reward = 20 # Gran recompensa si consiguió fruta o mató rival
+				reward = 20 # Gran recompensa si consiguio fruta o mato rival
 			self.update_q_table(self.last_state, self.last_action, reward, current_state)
 		
 		# Selección de Acción: Política Epsilon-Greedy combinada con Action Masking

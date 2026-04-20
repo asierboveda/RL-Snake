@@ -62,7 +62,7 @@ jobs:
             ITERATION='${{ github.event.client_payload.next_iteration }}'
             MAX_ITER='${{ github.event.client_payload.max_iterations }}'
             BASE_BRANCH='${{ github.event.client_payload.base_branch }}'
-            METRICS='${{ toJson(github.event.client_payload.metrics) }}'
+            METRICS='${{ toJson(github.event.client_payload.runner_report) }}'
           else
             OBJECTIVE='${{ github.event.issue.title }} - ${{ github.event.issue.body }}'
             ITERATION=1
@@ -82,7 +82,7 @@ jobs:
           echo "iteration=$ITERATION" >> "$GITHUB_OUTPUT"
           echo "max_iterations=$MAX_ITER" >> "$GITHUB_OUTPUT"
           echo "base_branch=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
-          echo "metrics_json=$METRICS" >> "$GITHUB_OUTPUT"
+          echo "runner_report_json=$METRICS" >> "$GITHUB_OUTPUT"
 
       - name: Run manager planner
         id: plan
@@ -91,7 +91,7 @@ jobs:
           ITERATION: ${{ steps.ctx.outputs.iteration }}
           MAX_ITERATIONS: ${{ steps.ctx.outputs.max_iterations }}
           BASE_BRANCH: ${{ steps.ctx.outputs.base_branch }}
-          METRICS_JSON: ${{ steps.ctx.outputs.metrics_json }}
+          RUNNER_REPORT_JSON: ${{ steps.ctx.outputs.runner_report_json }}
         run: |
           PLAN_JSON=$(python .github/scripts/invoke_manager.py)
           echo "plan_json=$PLAN_JSON" >> "$GITHUB_OUTPUT"
