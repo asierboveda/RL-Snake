@@ -260,7 +260,7 @@ jobs:
       # -----------------------------------------------------------------------
 
       - name: Send runner report to manager
-        if: ${{ github.event.inputs.worker_role == 'runner' && always() }}
+        if: ${{ github.event.inputs.worker_role == 'runner' && success() }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUNNER_REPORT: ${{ steps.metrics.outputs.runner_report }}
@@ -288,7 +288,7 @@ jobs:
             | gh api repos/${{ github.repository }}/dispatches --method POST --input -
 
       - name: Send implementation signal to manager
-        if: ${{ github.event.inputs.worker_role == 'implementer' && always() }}
+        if: ${{ github.event.inputs.worker_role == 'implementer' && success() }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

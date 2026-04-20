@@ -61,6 +61,7 @@ jobs:
             BASE_BRANCH='${{ github.event.inputs.base_branch }}'
             TARGET_BRANCH='${{ github.event.inputs.base_branch }}'
             METRICS='{}'
+            LOOP_MANAGER_RUN_ID='${{ github.run_id }}'
           elif [ "$EVENT_NAME" = "repository_dispatch" ]; then
             EVENT_ACTION="${{ github.event.action }}"
             OBJECTIVE='${{ github.event.client_payload.objective }}'
@@ -69,6 +70,15 @@ jobs:
             BASE_BRANCH='${{ github.event.client_payload.base_branch }}'
             TARGET_BRANCH='${{ github.event.client_payload.branch_name }}'
             METRICS='${{ toJson(github.event.client_payload.runner_report) }}'
+            LOOP_MANAGER_RUN_ID='${{ github.event.client_payload.manager_run_id }}'
+            if [ -z "$LOOP_MANAGER_RUN_ID" ] || [ "$LOOP_MANAGER_RUN_ID" = "null" ]; then
+              LOOP_MANAGER_RUN_ID='${{ github.run_id }}'
+            fi
+            # Metrics event on non-base branch means validation runner finished.
+            # Manager owns merge and then continues next iteration from base branch.
+            if [ "$EVENT_ACTION" = "rl-metrics-ready" ] && [ "$TARGET_BRANCH" != "$BASE_BRANCH" ]; then
+              EVENT_ACTION="rl-validation-ready"
+            fi
           else
             EVENT_ACTION="start"
             OBJECTIVE='${{ github.event.issue.title }} - ${{ github.event.issue.body }}'
@@ -77,6 +87,7 @@ jobs:
             BASE_BRANCH='main'
             TARGET_BRANCH='main'
             METRICS='{}'
+            LOOP_MANAGER_RUN_ID='${{ github.run_id }}'
           fi
 
           if [ -z "$OBJECTIVE" ]; then OBJECTIVE="Improve RL Snake agent"; fi
@@ -86,6 +97,8 @@ jobs:
           if [ -z "$BASE_BRANCH" ]; then BASE_BRANCH=main; fi
           if [ -z "$TARGET_BRANCH" ]; then TARGET_BRANCH="$BASE_BRANCH"; fi
           if [ -z "$METRICS" ]; then METRICS='{}'; fi
+          METRICS_COMPACT=$(echo "$METRICS" | jq -c . 2>/dev/null || echo '{}')
+          if [ -z "$METRICS_COMPACT" ] || [ "$METRICS_COMPACT" = "null" ]; then METRICS_COMPACT='{}'; fi
 
           echo "event_action=$EVENT_ACTION" >> "$GITHUB_OUTPUT"
           echo "objective=$OBJECTIVE" >> "$GITHUB_OUTPUT"
@@ -93,7 +106,33 @@ jobs:
           echo "max_iterations=$MAX_ITER" >> "$GITHUB_OUTPUT"
           echo "base_branch=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
           echo "target_branch=$TARGET_BRANCH" >> "$GITHUB_OUTPUT"
-          echo "runner_report_json=$METRICS" >> "$GITHUB_OUTPUT"
+          echo "runner_report_json=$METRICS_COMPACT" >> "$GITHUB_OUTPUT"
+          echo "loop_manager_run_id=$LOOP_MANAGER_RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Merge validated implementation
+        if: ${{ github.event_name == 'repository_dispatch' && steps.ctx.outputs.event_action == 'rl-validation-ready' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.ctx.outputs.target_branch }}"
+          BASE="${{ steps.ctx.outputs.base_branch }}"
+          if [ "$BRANCH" = "$BASE" ]; then
+            echo "No merge needed: branch equals base."
+            exit 0
+          fi
+
+          PR_NUMBER=$(gh pr list \
+            --state open \
+            --base "$BASE" \
+            --head "$BRANCH" \
+            --json number -q '.[0].number' 2>/dev/null || echo "")
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No open PR found for $BRANCH -> $BASE (already merged or no-op)."
+            exit 0
+          fi
+
+          gh pr merge "$PR_NUMBER" --squash --delete-branch
 
       - name: Run manager planner
         id: plan
@@ -105,7 +144,7 @@ jobs:
           BASE_BRANCH: ${{ steps.ctx.outputs.base_branch }}
           TARGET_BRANCH: ${{ steps.ctx.outputs.target_branch }}
           RUNNER_REPORT_JSON: ${{ steps.ctx.outputs.runner_report_json }}
-          MANAGER_RUN_ID: ${{ github.run_id }}
+          MANAGER_RUN_ID: ${{ steps.ctx.outputs.loop_manager_run_id }}
         run: |
           PLAN_JSON=$(python .github/scripts/invoke_manager.py)
           echo "plan_json=$PLAN_JSON" >> "$GITHUB_OUTPUT"
@@ -134,7 +173,7 @@ jobs:
               -f objective="$(echo "$PLAN_JSON" | jq -r '.objective')" \
               -f iteration="$(echo "$PLAN_JSON" | jq -r '.iteration')" \
               -f max_iterations="$(echo "$PLAN_JSON" | jq -r '.max_iterations')" \
-              -f manager_run_id="${{ github.run_id }}"
+              -f manager_run_id="${{ steps.ctx.outputs.loop_manager_run_id }}"
           done
 
       - name: Persist manager trace
@@ -153,7 +192,7 @@ jobs:
 
           ## Input metrics
           \`\`\`json
-          ${{ steps.ctx.outputs.metrics_json }}
+          ${{ steps.ctx.outputs.runner_report_json }}
           \`\`\`
 
           ## Generated plan

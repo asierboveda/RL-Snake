@@ -312,6 +312,25 @@ def _build_tasks(
             "ref":               target_branch,
         })
 
+    elif action == "rl-validation-ready":
+        # Validation runner finished on implementation branch and manager already merged.
+        # Continue loop by evaluating base branch in next iteration.
+        runner_instruction = (
+            f"Post-merge: evaluar estado consolidado en rama base: "
+            f"(1) Entrenamiento: 'python trainRL.py --episodes 80'. "
+            f"(2) Observacion: 'python .github/scripts/run_and_observe.py {iteration}'. "
+            f"Genera runner-report.json para decidir el siguiente cambio. "
+            f"Iteracion {iteration}/{max_iterations}. Objetivo: {objective}"
+        )
+        tasks.append({
+            "worker_role":       "runner",
+            "branch_name":       base_branch,
+            "base_branch":       base_branch,
+            "instructions":      runner_instruction,
+            "problem_diagnosed": "post_merge_validation",
+            "ref":               base_branch,
+        })
+
     return tasks
 
 
