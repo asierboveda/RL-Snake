@@ -180,7 +180,15 @@ jobs:
           EOF
 
           # Ejecutar Copilot CLI en modo NO interactivo.
-          gh copilot -p "$(cat implementer_prompt.txt)" > raw_response.txt 2>&1 || true
+          # En runners limpios, la primera llamada puede solo instalar Copilot CLI.
+          COPILOT_PROMPT="$(cat implementer_prompt.txt)"
+          for ATTEMPT in 1 2; do
+            gh copilot -- -p "$COPILOT_PROMPT" > raw_response.txt 2>&1 || true
+            if grep -qi "installed successfully" raw_response.txt && [ "$ATTEMPT" -eq 1 ]; then
+              continue
+            fi
+            break
+          done
           if grep -qi "For non-interactive mode, use the -p" raw_response.txt; then
             echo "ERROR: Copilot CLI entro en modo interactivo inesperado."
             tail -n 80 raw_response.txt || true
