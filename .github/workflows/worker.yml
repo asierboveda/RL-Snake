@@ -105,7 +105,7 @@ jobs:
         if: ${{ github.event.inputs.worker_role == 'runner' }}
         id: metrics
         run: |
-          REPORT=$(cat runner-report.json 2>/dev/null || echo '{}')
+          REPORT=$(jq -c . runner-report.json 2>/dev/null || echo '{}')
           echo "runner_report=$REPORT" >> "$GITHUB_OUTPUT"
 
       - name: Upload runner artifacts
