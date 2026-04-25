@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Dict, Iterable, Optional, Tuple
 
 import numpy as np
-from PIL import Image
 
+from vision_match import best_template, confidence, image_pixels, load_template
 from vision_grid import CELL_SIZE, GridGeometry, detect_grid_geometry
 
 
@@ -113,7 +113,7 @@ def detect_snakes(
     margin_ratio: float = SNAKE_MATCH_MARGIN_RATIO,
 ) -> SnakesState:
     geometry = detect_grid_geometry(image)
-    pixels = _image_pixels(image)
+    pixels = image_pixels(image)
     snake_templates = _snake_templates()
     other_templates = _other_templates()
 
@@ -123,8 +123,8 @@ def detect_snakes(
             x, y, _, _ = geometry.cell_bbox(row, col)
             crop = pixels[y:y + CELL_SIZE, x:x + CELL_SIZE, :]
 
-            key, snake_error = _best_template(crop, snake_templates)
-            _, other_error = _best_template(crop, other_templates)
+            key, snake_error = best_template(crop, snake_templates)
+            _, other_error = best_template(crop, other_templates)
 
             if snake_error > match_threshold:
                 continue
@@ -132,7 +132,7 @@ def detect_snakes(
                 continue
 
             segment_class, player, direction = key
-            confidence = _confidence(snake_error, other_error)
+            segment_confidence = confidence(snake_error, other_error)
             segments.append(
                 SnakeSegment(
                     segment_class=segment_class,
@@ -141,7 +141,7 @@ def detect_snakes(
                     col=col,
                     direction=direction,
                     bbox=geometry.cell_bbox(row, col),
-                    confidence=confidence,
+                    confidence=segment_confidence,
                     error=snake_error,
                 )
             )
@@ -226,32 +226,6 @@ def _player_segment_sort_key(segment: SnakeSegment) -> Tuple[int, int, int]:
     )
 
 
-def _confidence(snake_error: float, other_error: float) -> float:
-    if other_error <= 0.0:
-        return 0.0
-    margin = max(other_error - snake_error, 0.0)
-    return min(1.0, margin / other_error)
-
-
-def _best_template(crop: np.ndarray, templates: Dict[object, np.ndarray]) -> Tuple[object, float]:
-    best_key = None
-    best_error = float("inf")
-    for key, template in templates.items():
-        error = float(np.mean((crop - template) ** 2))
-        if error < best_error:
-            best_key = key
-            best_error = error
-    return best_key, best_error
-
-
-def _image_pixels(image) -> np.ndarray:
-    if isinstance(image, Image.Image):
-        pil_image = image.convert("RGB")
-    else:
-        pil_image = Image.fromarray(np.asarray(image)).convert("RGB")
-    return np.asarray(pil_image, dtype=np.float32) / 255.0
-
-
 @lru_cache(maxsize=1)
 def _snake_templates() -> Dict[Tuple[str, str, str], np.ndarray]:
     templates = {}
@@ -269,20 +243,13 @@ def _snake_templates() -> Dict[Tuple[str, str, str], np.ndarray]:
         else:
             continue
         player, direction = rest.split("_", 1)
-        templates[(segment_class, player, direction)] = _load_template(path)
+        templates[(segment_class, player, direction)] = load_template(path)
     return templates
 
 
 @lru_cache(maxsize=1)
 def _other_templates() -> Dict[str, np.ndarray]:
     return {
-        template_name: _load_template(ASSET_DIR / f"{template_name}.png")
+        template_name: load_template(ASSET_DIR / f"{template_name}.png")
         for template_name in NON_SNAKE_TEMPLATES
     }
-
-
-def _load_template(path: Path) -> np.ndarray:
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with Image.open(path) as image:
-        return np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
