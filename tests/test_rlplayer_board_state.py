@@ -1,4 +1,5 @@
 import unittest
+import random
 
 from board_state import BOARD_COLS, BOARD_ROWS, BoardState, FruitState, SnakeState
 from RLPlayer import RLPlayer
@@ -75,6 +76,30 @@ class RLPlayerBoardStateTests(unittest.TestCase):
         player = RLPlayer(0, "G", game=None, epsilon=0.0, training_enabled=False)
 
         self.assertEqual("N", player.play_board_state(board))
+
+    def test_can_act_from_board_state_without_game_constructor_arg(self):
+        board = make_board(
+            snakes=(SnakeState(0, "A", "G", True, ((10, 10, "N"),), score=0, fruit_score=0),),
+            fruits=(FruitState(row=10, col=12, value=10, time_left=20),),
+        )
+        player = RLPlayer(0, "G", epsilon=0.0, training_enabled=False)
+        state = player.get_state_from_board(board)
+        player.q_table[state] = {"N": 0.0, "S": 0.0, "E": 5.0, "W": 1.0}
+
+        self.assertEqual("E", player.play(board))
+
+    def test_exploration_uses_injected_rng_for_reproducible_actions(self):
+        board = make_board(
+            snakes=(SnakeState(0, "A", "G", True, ((10, 10, "N"),), score=0, fruit_score=0),),
+            fruits=(),
+        )
+        first = RLPlayer(0, "G", epsilon=1.0, rng=random.Random(42), training_enabled=False)
+        second = RLPlayer(0, "G", epsilon=1.0, rng=random.Random(42), training_enabled=False)
+
+        self.assertEqual(
+            [first.play_board_state(board) for _ in range(8)],
+            [second.play_board_state(board) for _ in range(8)],
+        )
 
 
 if __name__ == "__main__":
