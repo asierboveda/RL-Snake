@@ -2,7 +2,6 @@ import numpy as np
 import random
 
 
-from matplotlib import image
 from Snake import *
 from Fruit import *
 
@@ -246,11 +245,12 @@ class SnakeGame:
 					toC=fromC+self.SFACTOR
 					
 					try:
+						from matplotlib import image
 						pic=image.imread("./input/"+str(self.SFACTOR)+"/"+str(scoreDigits[numDigit])+color+"-"+str(offSetR)+"-"+str(offSetC)+".png")
 						pic=pic[:,:,:3]
 						if fromR>=0 and fromC>=0 and toR<im.shape[0] and toC<im.shape[1]:
 							im[fromR:toR,fromC:toC,:]=pic
-					except:
+					except Exception:
 						pass
 
 

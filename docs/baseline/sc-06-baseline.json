@@ -1,0 +1,370 @@
+{
+  "generated_utc": "2026-04-25T17:32:34.248916+00:00",
+  "seed_base": 20260425,
+  "games_per_matchup": 2,
+  "turn_limit": 900,
+  "initial_fruits": 5,
+  "matchups": [
+    {
+      "name": "Random vs Random vs Random vs Random",
+      "labels": [
+        "Random",
+        "Random",
+        "Random",
+        "Random"
+      ],
+      "seat_labels": [
+        "Random@1",
+        "Random@2",
+        "Random@3",
+        "Random@4"
+      ],
+      "summary": {
+        "games": 2,
+        "avg_turns": 900,
+        "min_turns": 900,
+        "max_turns": 900,
+        "winner_counts": {
+          "none": 2
+        },
+        "avg_scores": {
+          "Random@1": 30,
+          "Random@2": 17.5,
+          "Random@3": 15,
+          "Random@4": 37.5
+        },
+        "avg_fruit_scores": {
+          "Random@1": 30,
+          "Random@2": 17.5,
+          "Random@3": 15,
+          "Random@4": 37.5
+        }
+      },
+      "results": [
+        {
+          "seed": 20260425,
+          "turns": 900,
+          "winner": null,
+          "winner_id": null,
+          "terminal_reason": "turn_limit",
+          "scores": {
+            "Random@1": 30,
+            "Random@2": 20,
+            "Random@3": 15,
+            "Random@4": 30
+          },
+          "fruit_scores": {
+            "Random@1": 30,
+            "Random@2": 20,
+            "Random@3": 15,
+            "Random@4": 30
+          },
+          "alive": {
+            "Random@1": true,
+            "Random@2": true,
+            "Random@3": false,
+            "Random@4": false
+          },
+          "replay_steps": 900
+        },
+        {
+          "seed": 20260426,
+          "turns": 900,
+          "winner": null,
+          "winner_id": null,
+          "terminal_reason": "turn_limit",
+          "scores": {
+            "Random@1": 30,
+            "Random@2": 15,
+            "Random@3": 15,
+            "Random@4": 45
+          },
+          "fruit_scores": {
+            "Random@1": 30,
+            "Random@2": 15,
+            "Random@3": 15,
+            "Random@4": 45
+          },
+          "alive": {
+            "Random@1": true,
+            "Random@2": true,
+            "Random@3": true,
+            "Random@4": true
+          },
+          "replay_steps": 900
+        }
+      ]
+    },
+    {
+      "name": "Greedy vs Randoms",
+      "labels": [
+        "Greedy",
+        "Random",
+        "Random",
+        "Random"
+      ],
+      "seat_labels": [
+        "Greedy@1",
+        "Random@2",
+        "Random@3",
+        "Random@4"
+      ],
+      "summary": {
+        "games": 2,
+        "avg_turns": 221.5,
+        "min_turns": 192,
+        "max_turns": 251,
+        "winner_counts": {
+          "Greedy@1": 2
+        },
+        "avg_scores": {
+          "Greedy@1": 477.5,
+          "Random@2": 7.5,
+          "Random@3": 7.5,
+          "Random@4": 5
+        },
+        "avg_fruit_scores": {
+          "Greedy@1": 132.5,
+          "Random@2": 7.5,
+          "Random@3": 7.5,
+          "Random@4": 5
+        }
+      },
+      "results": [
+        {
+          "seed": 20261425,
+          "turns": 192,
+          "winner": "Greedy@1",
+          "winner_id": 0,
+          "terminal_reason": "single_alive",
+          "scores": {
+            "Greedy@1": 160,
+            "Random@2": 15,
+            "Random@3": 15,
+            "Random@4": 0
+          },
+          "fruit_scores": {
+            "Greedy@1": 130,
+            "Random@2": 15,
+            "Random@3": 15,
+            "Random@4": 0
+          },
+          "alive": {
+            "Greedy@1": true,
+            "Random@2": false,
+            "Random@3": false,
+            "Random@4": false
+          },
+          "replay_steps": 192
+        },
+        {
+          "seed": 20261426,
+          "turns": 251,
+          "winner": "Greedy@1",
+          "winner_id": 0,
+          "terminal_reason": "single_alive",
+          "scores": {
+            "Greedy@1": 795,
+            "Random@2": 0,
+            "Random@3": 0,
+            "Random@4": 10
+          },
+          "fruit_scores": {
+            "Greedy@1": 135,
+            "Random@2": 0,
+            "Random@3": 0,
+            "Random@4": 10
+          },
+          "alive": {
+            "Greedy@1": true,
+            "Random@2": false,
+            "Random@3": false,
+            "Random@4": false
+          },
+          "replay_steps": 251
+        }
+      ]
+    },
+    {
+      "name": "Survival vs Randoms",
+      "labels": [
+        "Survival",
+        "Random",
+        "Random",
+        "Random"
+      ],
+      "seat_labels": [
+        "Survival@1",
+        "Random@2",
+        "Random@3",
+        "Random@4"
+      ],
+      "summary": {
+        "games": 2,
+        "avg_turns": 900,
+        "min_turns": 900,
+        "max_turns": 900,
+        "winner_counts": {
+          "none": 2
+        },
+        "avg_scores": {
+          "Survival@1": 0,
+          "Random@2": 17.5,
+          "Random@3": 37.5,
+          "Random@4": 0
+        },
+        "avg_fruit_scores": {
+          "Survival@1": 0,
+          "Random@2": 17.5,
+          "Random@3": 37.5,
+          "Random@4": 0
+        }
+      },
+      "results": [
+        {
+          "seed": 20262425,
+          "turns": 900,
+          "winner": null,
+          "winner_id": null,
+          "terminal_reason": "turn_limit",
+          "scores": {
+            "Survival@1": 0,
+            "Random@2": 20,
+            "Random@3": 60,
+            "Random@4": 0
+          },
+          "fruit_scores": {
+            "Survival@1": 0,
+            "Random@2": 20,
+            "Random@3": 60,
+            "Random@4": 0
+          },
+          "alive": {
+            "Survival@1": true,
+            "Random@2": false,
+            "Random@3": true,
+            "Random@4": false
+          },
+          "replay_steps": 900
+        },
+        {
+          "seed": 20262426,
+          "turns": 900,
+          "winner": null,
+          "winner_id": null,
+          "terminal_reason": "turn_limit",
+          "scores": {
+            "Survival@1": 0,
+            "Random@2": 15,
+            "Random@3": 15,
+            "Random@4": 0
+          },
+          "fruit_scores": {
+            "Survival@1": 0,
+            "Random@2": 15,
+            "Random@3": 15,
+            "Random@4": 0
+          },
+          "alive": {
+            "Survival@1": true,
+            "Random@2": true,
+            "Random@3": true,
+            "Random@4": true
+          },
+          "replay_steps": 900
+        }
+      ]
+    },
+    {
+      "name": "Hybrid vs Greedy vs Survival vs Aggressive",
+      "labels": [
+        "Hybrid",
+        "Greedy",
+        "Survival",
+        "Aggressive"
+      ],
+      "seat_labels": [
+        "Hybrid@1",
+        "Greedy@2",
+        "Survival@3",
+        "Aggressive@4"
+      ],
+      "summary": {
+        "games": 2,
+        "avg_turns": 167,
+        "min_turns": 82,
+        "max_turns": 252,
+        "winner_counts": {
+          "Hybrid@1": 1,
+          "none": 1
+        },
+        "avg_scores": {
+          "Hybrid@1": 112.5,
+          "Greedy@2": 30,
+          "Survival@3": 0,
+          "Aggressive@4": 0
+        },
+        "avg_fruit_scores": {
+          "Hybrid@1": 97.5,
+          "Greedy@2": 30,
+          "Survival@3": 0,
+          "Aggressive@4": 0
+        }
+      },
+      "results": [
+        {
+          "seed": 20263425,
+          "turns": 252,
+          "winner": "Hybrid@1",
+          "winner_id": 0,
+          "terminal_reason": "single_alive",
+          "scores": {
+            "Hybrid@1": 160,
+            "Greedy@2": 20,
+            "Survival@3": 0,
+            "Aggressive@4": 0
+          },
+          "fruit_scores": {
+            "Hybrid@1": 130,
+            "Greedy@2": 20,
+            "Survival@3": 0,
+            "Aggressive@4": 0
+          },
+          "alive": {
+            "Hybrid@1": true,
+            "Greedy@2": false,
+            "Survival@3": false,
+            "Aggressive@4": false
+          },
+          "replay_steps": 252
+        },
+        {
+          "seed": 20263426,
+          "turns": 82,
+          "winner": null,
+          "winner_id": null,
+          "terminal_reason": "all_dead",
+          "scores": {
+            "Hybrid@1": 65,
+            "Greedy@2": 40,
+            "Survival@3": 0,
+            "Aggressive@4": 0
+          },
+          "fruit_scores": {
+            "Hybrid@1": 65,
+            "Greedy@2": 40,
+            "Survival@3": 0,
+            "Aggressive@4": 0
+          },
+          "alive": {
+            "Hybrid@1": false,
+            "Greedy@2": false,
+            "Survival@3": false,
+            "Aggressive@4": false
+          },
+          "replay_steps": 82
+        }
+      ]
+    }
+  ]
+}
