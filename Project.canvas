@@ -75,14 +75,64 @@
 			"color": "0"
 		},
 		{
-			"id": "95906af1",
+			"id": "canvas-errors",
 			"type": "text",
-			"text": "## RL-04 Entrenar primer agente RL headless\nEntrenar sin vision contra entorno estructurado. Acciones recomendadas: forward, turn_left, turn_right. Empezar con Q/DQN simple segun observacion elegida.\n\n**Criterio:** checkpoint reproducible + curva de aprendizaje guardada.",
-			"x": 900,
-			"y": 620,
+			"text": "## Errors\n✓ None",
+			"x": -440,
+			"y": 5,
+			"width": 380,
+			"height": 230,
+			"color": "1"
+		},
+		{
+			"id": "canvas-warnings",
+			"type": "text",
+			"text": "## Warnings\n✓ Nodos verdes y azul del canvas original preservados sin cambios.\n✓ Planning reordenado para priorizar entorno, baselines, RL incremental y documentacion.",
+			"x": -440,
+			"y": 285,
+			"width": 380,
+			"height": 230,
+			"color": "3"
+		},
+		{
+			"id": "cd673bf9",
+			"type": "text",
+			"text": "## SC-02 Congelar baseline reproducible\nEjecutar baseline actual (headless + visual) y guardar metricas iniciales para comparar mejoras posteriores.",
+			"x": 20,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "a80c2b81",
+			"type": "text",
+			"text": "## SC-01 Definir contrato BoardState y reglas oficiales\nFormalizar estructura de estado, regla de kill >=120 fruta, puntuacion por kill, condiciones de victoria y campos obligatorios por turno.",
+			"x": 20,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "legend",
+			"type": "text",
+			"text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
+			"x": -440,
+			"y": 560,
+			"width": 380,
+			"height": 230,
+			"color": "0"
+		},
+		{
+			"id": "f427a50e",
+			"type": "text",
+			"text": "## IN-03 Gestionar desincronizacion frame-accion\nControlar latencia y desfase temporal entre frame observado y accion emitida. Registrar timestamp/frame_id y descartar frames obsoletos.\n\n**Criterio:** politica de sincronizacion documentada y testeada.",
+			"x": 1340,
+			"y": 440,
 			"width": 280,
 			"height": 180,
-			"color": "6"
+			"color": "0"
 		},
 		{
 			"id": "rl05-benchmark",
@@ -90,16 +140,6 @@
 			"text": "## RL-05 Evaluar contra baselines con benchmark estadistico\nMinimo 200 partidas por configuracion contra Random, Greedy, Survival y Aggressive. Reportar win_rate, avg_rank, score, kills, survival_turns y early_death.\n\n**Doc obligatoria:** `logs/benchmark_report.md`.",
 			"x": 900,
 			"y": 820,
-			"width": 280,
-			"height": 180,
-			"color": "6"
-		},
-		{
-			"id": "rl06-ablation",
-			"type": "text",
-			"text": "## RL-06 Ablation minima de observacion y reward\nComparar vector vs mapa por canales y reward v1 vs variantes pequenas. Solo aceptar cambios que mejoren metricas con seeds fijas.\n\n**Criterio:** tabla de ablation con conclusion clara: mantener, descartar o iterar.",
-			"x": 900,
-			"y": 1020,
 			"width": 280,
 			"height": 180,
 			"color": "6"
@@ -145,26 +185,6 @@
 			"color": "0"
 		},
 		{
-			"id": "835f8415",
-			"type": "text",
-			"text": "## VI-03 Detectar serpientes, cabeza y orientacion\nSeparar sprites por color, reconstruir cuerpo, cabeza y direccion por jugador. No integrar todavia en RL: solo producir datos comparables con BoardState.\n\n**Doc obligatoria:** errores tipicos y ejemplos visuales en `docs/vision_snakes.md`.",
-			"x": 460,
-			"y": 400,
-			"width": 280,
-			"height": 180,
-			"color": "4"
-		},
-		{
-			"id": "96aa9781",
-			"type": "text",
-			"text": "## VI-04 Detectar frutas y valor de fruta\nDetectar frutas activas, mapear celda y valor visual. Validar frutas solapadas, bordes y frames con mucho movimiento.\n\n**Criterio:** precision por celda y por valor reportada en dataset etiquetado.",
-			"x": 460,
-			"y": 600,
-			"width": 280,
-			"height": 180,
-			"color": "5"
-		},
-		{
 			"id": "183842a2",
 			"type": "text",
 			"text": "## VI-05 Construir VisionParser imagen -> BoardState\nUnificar tablero, HUD, serpientes y frutas en un BoardState canonico, con `confidence`, `errors` y validaciones de consistencia.\n\n**Doc obligatoria:** `docs/vision_contract.md`.",
@@ -172,7 +192,7 @@
 			"y": 800,
 			"width": 280,
 			"height": 180,
-			"color": "0"
+			"color": "5"
 		},
 		{
 			"id": "vi06-eval",
@@ -183,6 +203,56 @@
 			"width": 280,
 			"height": 180,
 			"color": "0"
+		},
+		{
+			"id": "in04-fallback",
+			"type": "text",
+			"text": "## IN-04 Integrar fallback por baja confianza\nSi VisionParser no alcanza confianza minima, aplicar accion segura o estrategia conservadora. Medir impacto frente a jugar con vision perfecta.\n\n**Doc obligatoria:** matriz fallo visual -> respuesta del agente.",
+			"x": 1340,
+			"y": 640,
+			"width": 280,
+			"height": 180,
+			"color": "0"
+		},
+		{
+			"id": "5dcb1dbd",
+			"type": "text",
+			"text": "## IN-05 Ejecutar pruebas end-to-end en partidas completas\nValidar imagen -> VisionParser -> BoardState -> agente -> accion durante partidas completas. Guardar replays y errores por turno.\n\n**Criterio:** informe comparando modo headless, oracle-render y vision real.",
+			"x": 1340,
+			"y": 840,
+			"width": 280,
+			"height": 180,
+			"color": "0"
+		},
+		{
+			"id": "in06-release-demo",
+			"type": "text",
+			"text": "## IN-06 Demo final reproducible\nPreparar script unico para lanzar partida, agente elegido, vision opcional, replay y export de metricas.\n\n**Doc obligatoria:** instrucciones de ejecucion en `README.md`.",
+			"x": 1340,
+			"y": 1040,
+			"width": 280,
+			"height": 160,
+			"color": "0"
+		},
+		{
+			"id": "95906af1",
+			"type": "text",
+			"text": "## RL-04 Entrenar primer agente RL headless\nEntrenar sin vision contra entorno estructurado. Acciones recomendadas: forward, turn_left, turn_right. Empezar con Q/DQN simple segun observacion elegida.\n\n**Criterio:** checkpoint reproducible + curva de aprendizaje guardada.",
+			"x": 900,
+			"y": 620,
+			"width": 280,
+			"height": 180,
+			"color": "6"
+		},
+		{
+			"id": "rl06-ablation",
+			"type": "text",
+			"text": "## RL-06 Ablation minima de observacion y reward\nComparar vector vs mapa por canales y reward v1 vs variantes pequenas. Solo aceptar cambios que mejoren metricas con seeds fijas.\n\n**Criterio:** tabla de ablation con conclusion clara: mantener, descartar o iterar.",
+			"x": 900,
+			"y": 1020,
+			"width": 280,
+			"height": 180,
+			"color": "6"
 		},
 		{
 			"id": "e5c4a39f",
@@ -225,6 +295,46 @@
 			"color": "0"
 		},
 		{
+			"id": "f594bf7a",
+			"type": "text",
+			"text": "## VI-01 Detectar limites de tablero y malla\nImplementar deteccion robusta del area jugable y conversion pixel-a-celda para reconstruir coordenadas discretas.",
+			"x": 460,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "0cab7db4",
+			"type": "text",
+			"text": "## VI-02 Detectar HUD y contadores por color\nLeer puntuaciones de las 4 serpientes desde el panel superior, asociando color a jugador y valor numerico.",
+			"x": 460,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "835f8415",
+			"type": "text",
+			"text": "## VI-03 Detectar serpientes, cabeza y orientacion\nSeparar sprites por color, reconstruir cuerpo, cabeza y direccion por jugador. No integrar todavia en RL: solo producir datos comparables con BoardState.\n\n**Doc obligatoria:** errores tipicos y ejemplos visuales en `docs/vision_snakes.md`.",
+			"x": 460,
+			"y": 400,
+			"width": 280,
+			"height": 180,
+			"color": "4"
+		},
+		{
+			"id": "96aa9781",
+			"type": "text",
+			"text": "## VI-04 Detectar frutas y valor de fruta\nDetectar frutas activas, mapear celda y valor visual. Validar frutas solapadas, bordes y frames con mucho movimiento.\n\n**Criterio:** precision por celda y por valor reportada en dataset etiquetado.",
+			"x": 460,
+			"y": 600,
+			"width": 280,
+			"height": 180,
+			"color": "4"
+		},
+		{
 			"id": "vi07-fallback",
 			"type": "text",
 			"text": "## VI-07 Politica de confianza y fallback visual\nDefinir que hace el agente si la vision falla: mantener direccion, accion segura, descartar frame o pedir siguiente.\n\n**Doc obligatoria:** tabla de umbrales de confianza y comportamiento esperado.",
@@ -265,26 +375,6 @@
 			"color": "0"
 		},
 		{
-			"id": "f594bf7a",
-			"type": "text",
-			"text": "## VI-01 Detectar limites de tablero y malla\nImplementar deteccion robusta del area jugable y conversion pixel-a-celda para reconstruir coordenadas discretas.",
-			"x": 460,
-			"y": 40,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "0cab7db4",
-			"type": "text",
-			"text": "## VI-02 Detectar HUD y contadores por color\nLeer puntuaciones de las 4 serpientes desde el panel superior, asociando color a jugador y valor numerico.",
-			"x": 460,
-			"y": 220,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
 			"id": "sc07-telemetry",
 			"type": "text",
 			"text": "## SC-07 Instrumentar partidas y replays\nGuardar por turno: BoardState, accion, reward, causa de muerte, fruta, kills, score y ranking. Permitir reproducir partidas con seed.\n\n**Doc obligatoria:** `docs/metrics_schema.md`.",
@@ -295,43 +385,23 @@
 			"color": "6"
 		},
 		{
-			"id": "canvas-errors",
+			"id": "do00-dod",
 			"type": "text",
-			"text": "## Errors\n✓ None",
-			"x": -440,
-			"y": 5,
-			"width": 380,
-			"height": 230,
+			"text": "## DO-00 Definicion de Hecho orientada a documentacion\nPara marcar una tarjeta como Done: implementar, testear, medir y documentar. Si no hay evidencia escrita, no se cierra.\n\n**Entregable:** checklist en `docs/definition_of_done.md`.",
+			"x": 2221,
+			"y": 40,
+			"width": 280,
+			"height": 180,
 			"color": "1"
 		},
 		{
-			"id": "canvas-warnings",
+			"id": "sc04-env",
 			"type": "text",
-			"text": "## Warnings\n✓ Nodos verdes y azul del canvas original preservados sin cambios.\n✓ Planning reordenado para priorizar entorno, baselines, RL incremental y documentacion.",
-			"x": -440,
-			"y": 285,
-			"width": 380,
-			"height": 230,
-			"color": "3"
-		},
-		{
-			"id": "cd673bf9",
-			"type": "text",
-			"text": "## SC-02 Congelar baseline reproducible\nEjecutar baseline actual (headless + visual) y guardar metricas iniciales para comparar mejoras posteriores.",
+			"text": "## SC-04 Crear entorno headless reproducible tipo Gym\nImplementar `reset/step`, acciones legales, seeds, replays y serializacion de estado. El agente debe entrenar sin vision y sin leer variables privadas del motor.\n\n**Doc obligatoria:** `docs/env_contract.md` con ejemplo de episodio y formato de logs.",
 			"x": 20,
-			"y": 220,
+			"y": 585,
 			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "a80c2b81",
-			"type": "text",
-			"text": "## SC-01 Definir contrato BoardState y reglas oficiales\nFormalizar estructura de estado, regla de kill >=120 fruta, puntuacion por kill, condiciones de victoria y campos obligatorios por turno.",
-			"x": 20,
-			"y": 40,
-			"width": 280,
-			"height": 160,
+			"height": 180,
 			"color": "4"
 		},
 		{
@@ -343,26 +413,6 @@
 			"width": 280,
 			"height": 180,
 			"color": "0"
-		},
-		{
-			"id": "legend",
-			"type": "text",
-			"text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
-			"x": -440,
-			"y": 560,
-			"width": 380,
-			"height": 230,
-			"color": "0"
-		},
-		{
-			"id": "do00-dod",
-			"type": "text",
-			"text": "## DO-00 Definicion de Hecho orientada a documentacion\nPara marcar una tarjeta como Done: implementar, testear, medir y documentar. Si no hay evidencia escrita, no se cierra.\n\n**Entregable:** checklist en `docs/definition_of_done.md`.",
-			"x": 2221,
-			"y": 40,
-			"width": 280,
-			"height": 180,
-			"color": "1"
 		},
 		{
 			"id": "cc40fb22",
@@ -415,16 +465,6 @@
 			"color": "6"
 		},
 		{
-			"id": "f427a50e",
-			"type": "text",
-			"text": "## IN-03 Gestionar desincronizacion frame-accion\nControlar latencia y desfase temporal entre frame observado y accion emitida. Registrar timestamp/frame_id y descartar frames obsoletos.\n\n**Criterio:** politica de sincronizacion documentada y testeada.",
-			"x": 1340,
-			"y": 440,
-			"width": 280,
-			"height": 180,
-			"color": "0"
-		},
-		{
 			"id": "36f8178f",
 			"type": "text",
 			"text": "## VA-03 Crear tests de percepcion imagen\nMedir precision sobre dataset etiquetado con tolerancias por componente: tablero, HUD, snakes, frutas, cabeza e identidad.\n\n**Criterio:** reporte automatico con ejemplos de falsos positivos/negativos.",
@@ -440,6 +480,16 @@
 			"text": "## VA-02 Tests de sanidad de baselines\nEjecutar benchmarks cortos para verificar que Random, Greedy, Survival y Aggressive se comportan como se espera.\n\n**Criterio:** regresion falla si Greedy no supera a Random con seed fija.",
 			"x": 1780,
 			"y": 240,
+			"width": 280,
+			"height": 180,
+			"color": "0"
+		},
+		{
+			"id": "004e985e",
+			"type": "text",
+			"text": "## VA-01 Crear tests de motor para reglas criticas\nTests unitarios y de escenario para colisiones, umbral 120, kills, empates, scores, spawn de frutas y victoria.\n\n**Criterio:** cada regla de `docs/rules_cases.md` tiene al menos un test.",
+			"x": 1780,
+			"y": 40,
 			"width": 280,
 			"height": 180,
 			"color": "0"
@@ -465,16 +515,6 @@
 			"color": "6"
 		},
 		{
-			"id": "004e985e",
-			"type": "text",
-			"text": "## VA-01 Crear tests de motor para reglas criticas\nTests unitarios y de escenario para colisiones, umbral 120, kills, empates, scores, spawn de frutas y victoria.\n\n**Criterio:** cada regla de `docs/rules_cases.md` tiene al menos un test.",
-			"x": 1780,
-			"y": 40,
-			"width": 280,
-			"height": 180,
-			"color": "0"
-		},
-		{
 			"id": "va06-doc-gate",
 			"type": "text",
 			"text": "## VA-06 Gate de documentacion para cerrar tareas\nUna tarea no pasa a verde si no tiene: codigo/test, metrica o evidencia, y documento actualizado.\n\n**Criterio:** checklist de DoD aplicado a Scope, RL, Vision e Integration.",
@@ -483,46 +523,6 @@
 			"width": 280,
 			"height": 180,
 			"color": "0"
-		},
-		{
-			"id": "in04-fallback",
-			"type": "text",
-			"text": "## IN-04 Integrar fallback por baja confianza\nSi VisionParser no alcanza confianza minima, aplicar accion segura o estrategia conservadora. Medir impacto frente a jugar con vision perfecta.\n\n**Doc obligatoria:** matriz fallo visual -> respuesta del agente.",
-			"x": 1340,
-			"y": 640,
-			"width": 280,
-			"height": 180,
-			"color": "0"
-		},
-		{
-			"id": "5dcb1dbd",
-			"type": "text",
-			"text": "## IN-05 Ejecutar pruebas end-to-end en partidas completas\nValidar imagen -> VisionParser -> BoardState -> agente -> accion durante partidas completas. Guardar replays y errores por turno.\n\n**Criterio:** informe comparando modo headless, oracle-render y vision real.",
-			"x": 1340,
-			"y": 840,
-			"width": 280,
-			"height": 180,
-			"color": "0"
-		},
-		{
-			"id": "in06-release-demo",
-			"type": "text",
-			"text": "## IN-06 Demo final reproducible\nPreparar script unico para lanzar partida, agente elegido, vision opcional, replay y export de metricas.\n\n**Doc obligatoria:** instrucciones de ejecucion en `README.md`.",
-			"x": 1340,
-			"y": 1040,
-			"width": 280,
-			"height": 160,
-			"color": "0"
-		},
-		{
-			"id": "sc04-env",
-			"type": "text",
-			"text": "## SC-04 Crear entorno headless reproducible tipo Gym\nImplementar `reset/step`, acciones legales, seeds, replays y serializacion de estado. El agente debe entrenar sin vision y sin leer variables privadas del motor.\n\n**Doc obligatoria:** `docs/env_contract.md` con ejemplo de episodio y formato de logs.",
-			"x": 20,
-			"y": 585,
-			"width": 280,
-			"height": 180,
-			"color": "4"
 		}
 	],
 	"edges": [
