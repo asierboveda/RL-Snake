@@ -1,5 +1,4 @@
-
-from matplotlib import image
+import numpy as np
 
 class Fruit:
 
@@ -8,8 +7,15 @@ class Fruit:
 		self.value=value
 		self.timeLeft=25
 		self.size=size
-		self.visual=image.imread("./input/"+str(size)+"/fruit"+str(self.value)+".png")
-		self.visual=self.visual[:,:,:3]
+		self.visual=self._load_visual()
+
+	def _load_visual(self):
+		try:
+			from matplotlib import image
+			visual=image.imread("./input/"+str(self.size)+"/fruit"+str(self.value)+".png")
+			return visual[:,:,:3]
+		except Exception:
+			return np.zeros((self.size, self.size, 3), dtype=float)
 
 	def overlaps(self,pos):
 		if abs(pos[0]-self.pos[0])<=0 and \
