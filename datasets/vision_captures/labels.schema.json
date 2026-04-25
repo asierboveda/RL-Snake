@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "snake-vision-label.schema.json",
+  "title": "Snake vision capture label",
+  "type": "object",
+  "required": ["capture_id", "image_path", "geometry", "hud", "board", "objects"],
+  "additionalProperties": false,
+  "properties": {
+    "capture_id": { "type": "string" },
+    "image_path": { "type": "string" },
+    "geometry": {
+      "type": "object",
+      "required": ["image_size", "grid_size", "upper_panel_rows", "cell_size", "cell_stride", "board_origin"],
+      "additionalProperties": false,
+      "properties": {
+        "image_size": { "$ref": "#/$defs/size" },
+        "grid_size": { "$ref": "#/$defs/gridSize" },
+        "upper_panel_rows": { "type": "integer", "const": 6 },
+        "cell_size": { "type": "integer", "const": 17 },
+        "cell_stride": { "type": "integer", "const": 18 },
+        "board_origin": { "$ref": "#/$defs/point" }
+      }
+    },
+    "hud": {
+      "type": "object",
+      "required": ["bbox", "turn_counter", "scores"],
+      "additionalProperties": false,
+      "properties": {
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "turn_counter": { "$ref": "#/$defs/hudValue" },
+        "scores": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/scoreValue" }
+        }
+      }
+    },
+    "board": {
+      "type": "object",
+      "required": ["bbox", "rows", "cols"],
+      "additionalProperties": false,
+      "properties": {
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "rows": { "type": "integer", "const": 44 },
+        "cols": { "type": "integer", "const": 44 }
+      }
+    },
+    "objects": {
+      "type": "object",
+      "required": ["fruits", "snakes"],
+      "additionalProperties": false,
+      "properties": {
+        "fruits": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fruit" }
+        },
+        "snakes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/snakeSegment" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "size": {
+      "type": "object",
+      "required": ["width", "height"],
+      "additionalProperties": false,
+      "properties": {
+        "width": { "type": "integer", "const": 793 },
+        "height": { "type": "integer", "const": 901 }
+      }
+    },
+    "gridSize": {
+      "type": "object",
+      "required": ["rows", "cols"],
+      "additionalProperties": false,
+      "properties": {
+        "rows": { "type": "integer", "const": 44 },
+        "cols": { "type": "integer", "const": 44 }
+      }
+    },
+    "point": {
+      "type": "object",
+      "required": ["x", "y"],
+      "additionalProperties": false,
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "cell": {
+      "type": "object",
+      "required": ["row", "col"],
+      "additionalProperties": false,
+      "properties": {
+        "row": { "type": "integer", "minimum": 0, "maximum": 43 },
+        "col": { "type": "integer", "minimum": 0, "maximum": 43 }
+      }
+    },
+    "bbox": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "integer", "minimum": 0 },
+        { "type": "integer", "minimum": 1 },
+        { "type": "integer", "minimum": 1 }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "hudValue": {
+      "type": "object",
+      "required": ["class", "bbox", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "class": { "type": "string", "const": "turn_counter" },
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "value": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "scoreValue": {
+      "type": "object",
+      "required": ["class", "player", "bbox", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "class": { "enum": ["score_G", "score_B", "score_R", "score_Y"] },
+        "player": { "enum": ["G", "B", "R", "Y"] },
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "value": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "fruit": {
+      "type": "object",
+      "required": ["class", "value", "cell", "bbox"],
+      "additionalProperties": false,
+      "properties": {
+        "class": { "enum": ["fruit_10", "fruit_15", "fruit_20"] },
+        "value": { "enum": [10, 15, 20] },
+        "cell": { "$ref": "#/$defs/cell" },
+        "bbox": { "$ref": "#/$defs/bbox" }
+      }
+    },
+    "snakeSegment": {
+      "type": "object",
+      "required": ["class", "player", "cell", "bbox", "direction"],
+      "additionalProperties": false,
+      "properties": {
+        "class": { "enum": ["snake_head", "snake_body", "snake_tail"] },
+        "player": { "enum": ["G", "B", "R", "Y"] },
+        "cell": { "$ref": "#/$defs/cell" },
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "direction": { "enum": ["N", "E", "S", "W", "NE", "NW", "SE", "SW", "EN", "ES", "WN", "WS"] }
+      }
+    }
+  }
+}

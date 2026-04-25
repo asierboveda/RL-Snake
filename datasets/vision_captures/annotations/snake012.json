@@ -1,0 +1,45 @@
+{
+  "capture_id": "snake012",
+  "image_path": "output/snake012.png",
+  "geometry": {
+    "image_size": { "width": 793, "height": 901 },
+    "grid_size": { "rows": 44, "cols": 44 },
+    "upper_panel_rows": 6,
+    "cell_size": 17,
+    "cell_stride": 18,
+    "board_origin": { "x": 1, "y": 109 }
+  },
+  "hud": {
+    "bbox": [0, 0, 793, 109],
+    "turn_counter": { "class": "turn_counter", "bbox": [343, 19, 107, 53], "value": 12 },
+    "scores": [
+      { "class": "score_G", "player": "G", "bbox": [37, 37, 107, 53], "value": 0 },
+      { "class": "score_B", "player": "B", "bbox": [181, 37, 107, 53], "value": 10 },
+      { "class": "score_R", "player": "R", "bbox": [505, 37, 107, 53], "value": 0 },
+      { "class": "score_Y", "player": "Y", "bbox": [649, 37, 107, 53], "value": 20 }
+    ]
+  },
+  "board": {
+    "bbox": [0, 109, 793, 792],
+    "rows": 44,
+    "cols": 44
+  },
+  "objects": {
+    "fruits": [
+      { "class": "fruit_15", "value": 15, "cell": { "row": 0, "col": 28 }, "bbox": [505, 109, 17, 17] },
+      { "class": "fruit_20", "value": 20, "cell": { "row": 1, "col": 41 }, "bbox": [739, 127, 17, 17] },
+      { "class": "fruit_15", "value": 15, "cell": { "row": 16, "col": 7 }, "bbox": [127, 397, 17, 17] },
+      { "class": "fruit_10", "value": 10, "cell": { "row": 24, "col": 13 }, "bbox": [235, 541, 17, 17] },
+      { "class": "fruit_15", "value": 15, "cell": { "row": 31, "col": 1 }, "bbox": [19, 667, 17, 17] },
+      { "class": "fruit_15", "value": 15, "cell": { "row": 33, "col": 14 }, "bbox": [253, 703, 17, 17] }
+    ],
+    "snakes": [
+      { "class": "snake_tail", "player": "B", "cell": { "row": 1, "col": 36 }, "bbox": [649, 127, 17, 17], "direction": "E" },
+      { "class": "snake_head", "player": "B", "cell": { "row": 1, "col": 37 }, "bbox": [667, 127, 17, 17], "direction": "E" },
+      { "class": "snake_head", "player": "G", "cell": { "row": 9, "col": 11 }, "bbox": [199, 271, 17, 17], "direction": "E" },
+      { "class": "snake_head", "player": "R", "cell": { "row": 24, "col": 12 }, "bbox": [217, 541, 17, 17], "direction": "E" },
+      { "class": "snake_tail", "player": "Y", "cell": { "row": 27, "col": 30 }, "bbox": [541, 595, 17, 17], "direction": "S" },
+      { "class": "snake_head", "player": "Y", "cell": { "row": 28, "col": 30 }, "bbox": [541, 613, 17, 17], "direction": "S" }
+    ]
+  }
+}

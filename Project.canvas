@@ -1,0 +1,503 @@
+{
+	"nodes": [
+		{
+			"id": "group-vision",
+			"type": "group",
+			"x": 440,
+			"y": 0,
+			"width": 380,
+			"height": 940,
+			"label": "Vision"
+		},
+		{
+			"id": "group-rl",
+			"type": "group",
+			"x": 880,
+			"y": 0,
+			"width": 380,
+			"height": 760,
+			"label": "RL"
+		},
+		{
+			"id": "group-scope",
+			"type": "group",
+			"x": 0,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "Scope"
+		},
+		{
+			"id": "group-integr",
+			"type": "group",
+			"x": 1320,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "Integration"
+		},
+		{
+			"id": "group-valida",
+			"type": "group",
+			"x": 1760,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "Validation"
+		},
+		{
+			"id": "group-docs",
+			"type": "group",
+			"x": 2200,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "Docs"
+		},
+		{
+			"id": "a80c2b81",
+			"type": "text",
+			"text": "## SC-01 Definir contrato BoardState y reglas oficiales\nFormalizar estructura de estado, regla de kill >=120 fruta, puntuacion por kill, condiciones de victoria y campos obligatorios por turno.",
+			"x": 20,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "cd673bf9",
+			"type": "text",
+			"text": "## SC-02 Congelar baseline reproducible\nEjecutar baseline actual (headless + visual) y guardar metricas iniciales para comparar mejoras posteriores.",
+			"x": 20,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "e5c4a39f",
+			"type": "text",
+			"text": "## RL-01 Ajustar RLPlayer para consumir BoardState\nSeparar la politica RL de cualquier acceso directo al motor, usando solo BoardState como fuente de decision.",
+			"x": 900,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "cec8cbe8",
+			"type": "text",
+			"text": "## RL-02 Redefinir reward shaping battle royale\nRecompensar fruta/utilidad y supervivencia, penalizar riesgo inutil y reflejar bien el comportamiento hunter/farmer.",
+			"x": 900,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "5aa1763d",
+			"type": "text",
+			"text": "## RL-03 Entrenar baseline RL headless con estado estructurado\nEntrenar sin vision con BoardState del motor para aislar aprendizaje de percepcion y estabilizar politica.",
+			"x": 900,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "95906af1",
+			"type": "text",
+			"text": "## RL-04 Evaluar RL contra Greedy y Random\nCorrer benchmark estandar (minimo 30 partidas) y reportar win rate, early death, causas de muerte y score.",
+			"x": 900,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "canvas-errors",
+			"type": "text",
+			"text": "## Errors\n✓ None",
+			"x": 20,
+			"y": 995,
+			"width": 380,
+			"height": 230,
+			"color": "1"
+		},
+		{
+			"id": "13ed24ee",
+			"type": "text",
+			"text": "## SC-03 Definir dataset etiquetado de vision\nSeleccionar capturas representativas (inicio, media, caos) y formato de etiquetas para tablero, HUD, frutas y serpientes.",
+			"x": 20,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "f594bf7a",
+			"type": "text",
+			"text": "## VI-01 Detectar limites de tablero y malla\nImplementar deteccion robusta del area jugable y conversion pixel-a-celda para reconstruir coordenadas discretas.",
+			"x": 460,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "0cab7db4",
+			"type": "text",
+			"text": "## VI-02 Detectar HUD y contadores por color\nLeer puntuaciones de las 4 serpientes desde el panel superior, asociando color a jugador y valor numerico.",
+			"x": 460,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "835f8415",
+			"type": "text",
+			"text": "## VI-03 Detectar serpientes, cabeza y orientacion\nSeparar sprites por color y extraer posicion de cabeza/cuerpo y direccion para cada jugador.",
+			"x": 460,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "96aa9781",
+			"type": "text",
+			"text": "## VI-04 Detectar frutas y valor de fruta\nDetectar frutas activas y mapear tipo visual a valor (10, 15, 20) para alimentar el estado canÃ³nico.",
+			"x": 460,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "183842a2",
+			"type": "text",
+			"text": "## VI-05 Construir parser imagen a BoardState\nUnificar detecciones en una unica estructura BoardState valida y consistente con el motor headless.",
+			"x": 460,
+			"y": 760,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "ad895e81",
+			"type": "text",
+			"text": "## IN-01 Conectar parser de vision al loop de juego real\nIntegrar pipeline imagen->BoardState->accion para inferencia online sin leer estado interno del motor.",
+			"x": 1340,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "canvas-warnings",
+			"type": "text",
+			"text": "## Warnings\n✓ None",
+			"x": 460,
+			"y": 995,
+			"width": 380,
+			"height": 230,
+			"color": "3"
+		},
+		{
+			"id": "legend",
+			"type": "text",
+			"text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
+			"x": 900,
+			"y": 995,
+			"width": 380,
+			"height": 230,
+			"color": "0"
+		},
+		{
+			"id": "f427a50e",
+			"type": "text",
+			"text": "## IN-02 Gestionar desincronizacion frame accion\nControlar latencia y desfase temporal entre frame observado y accion emitida para reducir errores por timing.",
+			"x": 1340,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "5dcb1dbd",
+			"type": "text",
+			"text": "## IN-03 Ejecutar pruebas end to end en partidas completas\nValidar partidas completas con vision activa y comparar diferencias frente al modo headless.",
+			"x": 1340,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "004e985e",
+			"type": "text",
+			"text": "## VA-01 Crear tests de motor para reglas criticas\nAÃ±adir tests de colisiones, umbral 120, adjudicacion de kills y actualizacion de puntuaciones.",
+			"x": 1780,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "36f8178f",
+			"type": "text",
+			"text": "## VA-02 Crear tests de percepcion imagen\nMedir precision de deteccion sobre dataset etiquetado con tolerancias por componente (HUD, snakes, frutas).",
+			"x": 1780,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "de4faf37",
+			"type": "text",
+			"text": "## VA-03 Automatizar metricas y reportes en CI\nPublicar reporte de benchmark y calidad de percepcion en cada iteracion para tomar decisiones de merge.",
+			"x": 1780,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "29daafba",
+			"type": "text",
+			"text": "## DO-01 Documentar arquitectura dual vision y RL\nExplicar capas, contratos y flujo online/offline: motor->BoardState para train y imagen->BoardState para juego real.",
+			"x": 2220,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "cc40fb22",
+			"type": "text",
+			"text": "## DO-02 Documentar runbook de entrenamiento y evaluacion\nIncluir comandos, seeds, expected outputs y criterios de aceptacion para repetir experimentos.",
+			"x": 2220,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "93781206",
+			"type": "text",
+			"text": "## DO-03 Preparar entrega final con riesgos y siguientes pasos\nCerrar version con comparativa baseline vs final, limitaciones conocidas y backlog de iteraciones futuras.",
+			"x": 2220,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		}
+	],
+	"edges": [
+		{
+			"id": "edge-001",
+			"fromNode": "a80c2b81",
+			"fromSide": "bottom",
+			"toNode": "cd673bf9",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-002",
+			"fromNode": "a80c2b81",
+			"fromSide": "bottom",
+			"toNode": "13ed24ee",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-003",
+			"fromNode": "13ed24ee",
+			"fromSide": "right",
+			"toNode": "f594bf7a",
+			"toSide": "left"
+		},
+		{
+			"id": "edge-004",
+			"fromNode": "f594bf7a",
+			"fromSide": "bottom",
+			"toNode": "0cab7db4",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-005",
+			"fromNode": "f594bf7a",
+			"fromSide": "bottom",
+			"toNode": "835f8415",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-006",
+			"fromNode": "f594bf7a",
+			"fromSide": "bottom",
+			"toNode": "96aa9781",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-007",
+			"fromNode": "0cab7db4",
+			"fromSide": "bottom",
+			"toNode": "183842a2",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-008",
+			"fromNode": "835f8415",
+			"fromSide": "bottom",
+			"toNode": "183842a2",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-009",
+			"fromNode": "96aa9781",
+			"fromSide": "bottom",
+			"toNode": "183842a2",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-010",
+			"fromNode": "a80c2b81",
+			"fromSide": "right",
+			"toNode": "e5c4a39f",
+			"toSide": "left"
+		},
+		{
+			"id": "edge-011",
+			"fromNode": "e5c4a39f",
+			"fromSide": "bottom",
+			"toNode": "cec8cbe8",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-012",
+			"fromNode": "cec8cbe8",
+			"fromSide": "bottom",
+			"toNode": "5aa1763d",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-013",
+			"fromNode": "cd673bf9",
+			"fromSide": "bottom",
+			"toNode": "5aa1763d",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-014",
+			"fromNode": "5aa1763d",
+			"fromSide": "bottom",
+			"toNode": "95906af1",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-015",
+			"fromNode": "183842a2",
+			"fromSide": "right",
+			"toNode": "ad895e81",
+			"toSide": "left"
+		},
+		{
+			"id": "edge-016",
+			"fromNode": "95906af1",
+			"fromSide": "top",
+			"toNode": "ad895e81",
+			"toSide": "bottom"
+		},
+		{
+			"id": "edge-017",
+			"fromNode": "ad895e81",
+			"fromSide": "bottom",
+			"toNode": "f427a50e",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-018",
+			"fromNode": "f427a50e",
+			"fromSide": "bottom",
+			"toNode": "5dcb1dbd",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-019",
+			"fromNode": "a80c2b81",
+			"fromSide": "right",
+			"toNode": "004e985e",
+			"toSide": "left"
+		},
+		{
+			"id": "edge-020",
+			"fromNode": "183842a2",
+			"fromSide": "right",
+			"toNode": "36f8178f",
+			"toSide": "left"
+		},
+		{
+			"id": "edge-021",
+			"fromNode": "13ed24ee",
+			"fromSide": "right",
+			"toNode": "36f8178f",
+			"toSide": "left"
+		},
+		{
+			"id": "edge-022",
+			"fromNode": "95906af1",
+			"fromSide": "right",
+			"toNode": "de4faf37",
+			"toSide": "left"
+		},
+		{
+			"id": "edge-023",
+			"fromNode": "36f8178f",
+			"fromSide": "bottom",
+			"toNode": "de4faf37",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-024",
+			"fromNode": "004e985e",
+			"fromSide": "bottom",
+			"toNode": "de4faf37",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-025",
+			"fromNode": "ad895e81",
+			"fromSide": "right",
+			"toNode": "29daafba",
+			"toSide": "left"
+		},
+		{
+			"id": "edge-026",
+			"fromNode": "de4faf37",
+			"fromSide": "right",
+			"toNode": "cc40fb22",
+			"toSide": "left"
+		},
+		{
+			"id": "edge-027",
+			"fromNode": "5dcb1dbd",
+			"fromSide": "right",
+			"toNode": "93781206",
+			"toSide": "left"
+		},
+		{
+			"id": "edge-028",
+			"fromNode": "29daafba",
+			"fromSide": "bottom",
+			"toNode": "93781206",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-029",
+			"fromNode": "cc40fb22",
+			"fromSide": "bottom",
+			"toNode": "93781206",
+			"toSide": "top"
+		}
+	]
+}

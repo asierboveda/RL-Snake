@@ -1,0 +1,45 @@
+{
+  "dataset_id": "snake_vision_captures",
+  "version": "0.1.0",
+  "task": "image_to_board_state",
+  "source": {
+    "capture_dir": "output",
+    "renderer": "SnakeGame.getSnapshot",
+    "image_width": 793,
+    "image_height": 901
+  },
+  "label_schema": "datasets/vision_captures/labels.schema.json",
+  "captures": [
+    {
+      "id": "snake000",
+      "image_path": "output/snake000.png",
+      "annotation_path": "datasets/vision_captures/annotations/snake000.json",
+      "phase": "inicio",
+      "split": "train",
+      "selection_reason": "Captura temprana para validar tablero, HUD y entidades con baja densidad."
+    },
+    {
+      "id": "snake012",
+      "image_path": "output/snake012.png",
+      "annotation_path": "datasets/vision_captures/annotations/snake012.json",
+      "phase": "media",
+      "split": "val",
+      "selection_reason": "Captura intermedia para ajustar deteccion sin sobreajustar al inicio."
+    },
+    {
+      "id": "snake025",
+      "image_path": "output/snake025.png",
+      "annotation_path": "datasets/vision_captures/annotations/snake025.json",
+      "phase": "caos",
+      "split": "test",
+      "selection_reason": "Captura tardia para evaluar generalizacion con mas ocupacion visual."
+    }
+  ],
+  "label_sets": {
+    "fruit_classes": ["fruit_10", "fruit_15", "fruit_20"],
+    "snake_part_classes": ["snake_head", "snake_body", "snake_tail"],
+    "player_colors": ["G", "B", "R", "Y"],
+    "directions": ["N", "E", "S", "W", "NE", "NW", "SE", "SW", "EN", "ES", "WN", "WS"],
+    "hud_classes": ["turn_counter", "score_G", "score_B", "score_R", "score_Y"]
+  }
+}

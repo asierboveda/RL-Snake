@@ -1,0 +1,42 @@
+{
+  "capture_id": "snake000",
+  "image_path": "output/snake000.png",
+  "geometry": {
+    "image_size": { "width": 793, "height": 901 },
+    "grid_size": { "rows": 44, "cols": 44 },
+    "upper_panel_rows": 6,
+    "cell_size": 17,
+    "cell_stride": 18,
+    "board_origin": { "x": 1, "y": 109 }
+  },
+  "hud": {
+    "bbox": [0, 0, 793, 109],
+    "turn_counter": { "class": "turn_counter", "bbox": [343, 19, 107, 53], "value": 0 },
+    "scores": [
+      { "class": "score_G", "player": "G", "bbox": [37, 37, 107, 53], "value": 0 },
+      { "class": "score_B", "player": "B", "bbox": [181, 37, 107, 53], "value": 0 },
+      { "class": "score_R", "player": "R", "bbox": [505, 37, 107, 53], "value": 0 },
+      { "class": "score_Y", "player": "Y", "bbox": [649, 37, 107, 53], "value": 0 }
+    ]
+  },
+  "board": {
+    "bbox": [0, 109, 793, 792],
+    "rows": 44,
+    "cols": 44
+  },
+  "objects": {
+    "fruits": [
+      { "class": "fruit_10", "value": 10, "cell": { "row": 8, "col": 36 }, "bbox": [649, 253, 17, 17] },
+      { "class": "fruit_15", "value": 15, "cell": { "row": 16, "col": 7 }, "bbox": [127, 397, 17, 17] },
+      { "class": "fruit_10", "value": 10, "cell": { "row": 24, "col": 13 }, "bbox": [235, 541, 17, 17] },
+      { "class": "fruit_20", "value": 20, "cell": { "row": 28, "col": 30 }, "bbox": [541, 613, 17, 17] },
+      { "class": "fruit_15", "value": 15, "cell": { "row": 31, "col": 1 }, "bbox": [19, 667, 17, 17] }
+    ],
+    "snakes": [
+      { "class": "snake_head", "player": "G", "cell": { "row": 10, "col": 10 }, "bbox": [181, 289, 17, 17], "direction": "N" },
+      { "class": "snake_head", "player": "B", "cell": { "row": 10, "col": 34 }, "bbox": [613, 289, 17, 17], "direction": "N" },
+      { "class": "snake_head", "player": "R", "cell": { "row": 34, "col": 10 }, "bbox": [181, 721, 17, 17], "direction": "N" },
+      { "class": "snake_head", "player": "Y", "cell": { "row": 34, "col": 34 }, "bbox": [613, 721, 17, 17], "direction": "N" }
+    ]
+  }
+}

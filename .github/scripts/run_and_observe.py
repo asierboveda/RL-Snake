@@ -428,7 +428,9 @@ def main():
 
     # Payload final para el manager
     report = {"metrics": metrics, "diagnosis": diagnosis}
-    Path("runner-report.json").write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
+    out_dir = Path("logs")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "runner-report.json").write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
 
     print("\n=== RUNNER REPORT JSON ===")
     print(json.dumps(report, ensure_ascii=True))

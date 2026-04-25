@@ -2,6 +2,15 @@ import random
 import os
 import pickle
 
+from board_state import (
+	BOARD_COLS,
+	BOARD_ROWS,
+	BoardState,
+	FruitState,
+	SnakeState,
+	determine_winner,
+)
+
 class RLPlayer:
 
 	def __init__(self, playerID, color, game, epsilon=0.1, alpha=0.1, gamma=0.9, training_enabled=True):
@@ -16,7 +25,9 @@ class RLPlayer:
 		self.gamma = gamma     # Factor de descuento para recompensas futuras
 		self.actions = ['N', 'S', 'E', 'W']
 		
-		self.q_file = f'./q_table_p{playerID}.pkl'
+		import os
+		os.makedirs('models', exist_ok=True)
+		self.q_file = f'models/q_table_p{playerID}.pkl'
 		self.q_table = self.load_q_table()
 		
 		# Memoria temporal para la actualización de la Q-Table
@@ -33,51 +44,156 @@ class RLPlayer:
 	def save_q_table(self):
 		with open(self.q_file, 'wb') as f:
 			pickle.dump(self.q_table, f)
-			
-	def get_state(self, my_snake):
-		head = my_snake.body[0]
-		
-		# 1. Detección de Peligros inmediatos (Muros o serpientes)
-		danger_N = self.is_dangerous([head[0]-1, head[1]])
-		danger_S = self.is_dangerous([head[0]+1, head[1]])
-		danger_E = self.is_dangerous([head[0], head[1]+1])
-		danger_W = self.is_dangerous([head[0], head[1]-1])
-		
-		# 2. Dirección cardinal hacia el objetivo (Fruta o Rival)
-		goal = self.find_goal(my_snake)
+
+	def board_state_from_game(self):
+		if self.game is None:
+			raise ValueError("RLPlayer has no game adapter; pass a BoardState to play_board_state()")
+
+		labels = ("A", "B", "C", "D")
+		snakes = []
+		for idx, snake in enumerate(self.game.snakes):
+			body = tuple(
+				(piece[0], piece[1], piece[2])
+				for piece in snake.body
+				if 0 <= piece[0] < BOARD_ROWS and 0 <= piece[1] < BOARD_COLS
+			)
+			if not body:
+				body = ((0, 0, "N"),)
+			snakes.append(
+				SnakeState(
+					player_id=idx,
+					label=labels[idx],
+					color=snake.color,
+					alive=snake.isAlive,
+					body=body,
+					score=snake.getScore(),
+					fruit_score=snake.getFruitScore(),
+				)
+			)
+
+		winner_id, terminal_reason = determine_winner(snakes)
+		game_alive = self.game.gameIsAlive()
+		return BoardState(
+			turn=self.game.turn,
+			rows=BOARD_ROWS,
+			cols=BOARD_COLS,
+			snakes=tuple(snakes),
+			fruits=tuple(
+				FruitState(row=fruit.pos[0], col=fruit.pos[1], value=fruit.value, time_left=fruit.timeLeft)
+				for fruit in self.game.fruits
+			),
+			game_alive=game_alive,
+			winner_id=None if game_alive else winner_id,
+			terminal_reason=None if game_alive else terminal_reason,
+		)
+
+	def get_my_snake(self, board_state):
+		for snake in board_state.snakes:
+			if snake.player_id == self.playerID:
+				return snake
+		raise ValueError(f"player_id {self.playerID} not present in BoardState")
+
+	def get_state_from_board(self, board_state):
+		my_snake = self.get_my_snake(board_state)
+		head = my_snake.head
+
+		danger_N = self.is_dangerous_on_board((head[0]-1, head[1]), board_state)
+		danger_S = self.is_dangerous_on_board((head[0]+1, head[1]), board_state)
+		danger_E = self.is_dangerous_on_board((head[0], head[1]+1), board_state)
+		danger_W = self.is_dangerous_on_board((head[0], head[1]-1), board_state)
+
+		goal = self.find_goal_on_board(board_state)
 		dir_N = goal[0] < head[0]
 		dir_S = goal[0] > head[0]
 		dir_E = goal[1] > head[1]
 		dir_W = goal[1] < head[1]
-		
-		# 3. Estado de cazador (Recompensa Battle Royale)
-		is_hunter = my_snake.getFruitScore() >= 120
-		
-		return (danger_N, danger_S, danger_E, danger_W, dir_N, dir_S, dir_E, dir_W, is_hunter)
 
-	def is_dangerous(self, pos):
-		# Muros
-		if pos[0] < 0 or pos[0] >= self.game.rSize or pos[1] < 0 or pos[1] >= self.game.cSize:
+		return (danger_N, danger_S, danger_E, danger_W, dir_N, dir_S, dir_E, dir_W, my_snake.is_hunter)
+
+	def is_dangerous_on_board(self, pos, board_state):
+		row, col = pos
+		if row < 0 or row >= board_state.rows or col < 0 or col >= board_state.cols:
 			return True
-		# Colisión con el cuerpo de cualquier serpiente (incluida sí misma)
-		for s in self.game.snakes:
-			if s.isAlive and s.occupies(pos):
+		for snake in board_state.snakes:
+			if snake.alive and (row, col) in snake.occupied_cells():
 				return True
 		return False
 
-	def find_goal(self, my_snake):
-		ownFruitScore = my_snake.getFruitScore()
-		weaker_rivals = [s for i, s in enumerate(self.game.snakes) if i != self.playerID and s.isAlive and s.getFruitScore() < ownFruitScore]
-		headPos = my_snake.body[0]
-		
-		if ownFruitScore >= 120 and weaker_rivals:
-			rivalPoss = [p[:2] for s in weaker_rivals for p in s.body]
-			if not rivalPoss: return [self.game.rSize//2, self.game.cSize//2]
-			return min(rivalPoss, key=lambda p: (headPos[0]-p[0])**2 + (headPos[1]-p[1])**2)
+	def find_goal_on_board(self, board_state):
+		my_snake = self.get_my_snake(board_state)
+		head = my_snake.head
+		weaker_rivals = [
+			snake for snake in board_state.snakes
+			if snake.player_id != self.playerID and snake.alive and snake.fruit_score < my_snake.fruit_score
+		]
+
+		if my_snake.is_hunter and weaker_rivals:
+			rival_positions = [cell for snake in weaker_rivals for cell in snake.occupied_cells()]
+			return min(rival_positions, key=lambda pos: (head[0]-pos[0])**2 + (head[1]-pos[1])**2)
+
+		fruit_positions = [(fruit.row, fruit.col) for fruit in board_state.fruits]
+		if not fruit_positions:
+			return (board_state.rows//2, board_state.cols//2)
+		return min(fruit_positions, key=lambda pos: (head[0]-pos[0])**2 + (head[1]-pos[1])**2)
+
+	def get_safe_actions_from_board(self, board_state):
+		my_snake = self.get_my_snake(board_state)
+		head = my_snake.head
+		candidates = {
+			'N': (head[0]-1, head[1]),
+			'S': (head[0]+1, head[1]),
+			'E': (head[0], head[1]+1),
+			'W': (head[0], head[1]-1),
+		}
+		return [action for action in self.actions if not self.is_dangerous_on_board(candidates[action], board_state)]
+
+	def play_board_state(self, board_state):
+		my_snake = self.get_my_snake(board_state)
+
+		if not my_snake.alive:
+			if self.last_state is not None:
+				self.update_q_table(self.last_state, self.last_action, -100, None)
+				self.last_state = None
+				self.save_q_table()
+			return 'N'
+
+		current_state = self.get_state_from_board(board_state)
+		current_score = my_snake.score
+
+		if self.last_state is not None and self.training_enabled:
+			reward = -0.1
+			if current_score > self.last_score:
+				reward = 20
+			self.update_q_table(self.last_state, self.last_action, reward, current_state)
+
+		safe_actions = self.get_safe_actions_from_board(board_state)
+		if random.random() < self.epsilon:
+			action = random.choice(safe_actions if safe_actions else self.actions)
 		else:
-			fruitPoss = [f.pos for f in self.game.fruits]
-			if not fruitPoss: return [self.game.rSize//2, self.game.cSize//2]
-			return min(fruitPoss, key=lambda f: (headPos[0]-f[0])**2 + (headPos[1]-f[1])**2)
+			q_values = self.get_q_values(current_state)
+			if safe_actions:
+				safe_q = {a: q_values[a] for a in safe_actions}
+				action = max(safe_q, key=safe_q.get)
+			else:
+				action = max(q_values, key=q_values.get)
+
+		self.last_state = current_state
+		self.last_action = action
+		self.last_score = current_score
+
+		if board_state.turn % 50 == 0:
+			self.save_q_table()
+
+		return action
+
+	def get_state(self, my_snake):
+		return self.get_state_from_board(self.board_state_from_game())
+
+	def is_dangerous(self, pos):
+		return self.is_dangerous_on_board(pos, self.board_state_from_game())
+
+	def find_goal(self, my_snake):
+		return self.find_goal_on_board(self.board_state_from_game())
 
 	def get_q_values(self, state):
 		if state not in self.q_table:
@@ -98,8 +214,7 @@ class RLPlayer:
 		Llamado por el runner al terminar cada episodio.
 		Aplica la penalizacion terminal si el agente murio y no la proceso aun.
 		"""
-		my_snake = self.game.snakes[self.playerID]
-		if not my_snake.isAlive and self.last_state is not None:
+		if self.game is not None and not self.game.snakes[self.playerID].isAlive and self.last_state is not None:
 			self.update_q_table(self.last_state, self.last_action, -100, None)
 			self.last_state = None
 			self.last_action = None
@@ -112,54 +227,15 @@ class RLPlayer:
 		self.save_q_table()
 
 	def get_safe_actions(self, head):
-		safe = []
-		if not self.is_dangerous([head[0]-1, head[1]]): safe.append('N')
-		if not self.is_dangerous([head[0]+1, head[1]]): safe.append('S')
-		if not self.is_dangerous([head[0], head[1]+1]): safe.append('E')
-		if not self.is_dangerous([head[0], head[1]-1]): safe.append('W')
-		return safe
+		return self.get_safe_actions_from_board(self.board_state_from_game())
 
 	def play(self, im):
-		my_snake = self.game.snakes[self.playerID]
-		
-		# Si la serpiente murió, penalizamos la acción que la mató (reward negativo gigante)
-		if not my_snake.isAlive:
+		if isinstance(im, BoardState):
+			return self.play_board_state(im)
+		if self.game is not None and not self.game.snakes[self.playerID].isAlive:
 			if self.last_state is not None:
 				self.update_q_table(self.last_state, self.last_action, -100, None)
 				self.last_state = None
 				self.save_q_table()
 			return 'N'
-			
-		current_state = self.get_state(my_snake)
-		current_score = my_snake.getScore()
-		
-		# Calcular recompensa del paso anterior (Aprendizaje Online)
-		if self.last_state is not None and self.training_enabled:
-			reward = -0.1 # Penalizacion leve base para motivar la rapidez y encontrar rutas cortas
-			if current_score > self.last_score:
-				reward = 20 # Gran recompensa si consiguio fruta o mato rival
-			self.update_q_table(self.last_state, self.last_action, reward, current_state)
-		
-		# Selección de Acción: Política Epsilon-Greedy combinada con Action Masking
-		safe_actions = self.get_safe_actions(my_snake.body[0])
-		
-		if random.random() < self.epsilon:
-			action = random.choice(safe_actions if safe_actions else self.actions) # Exploración controlada
-		else:
-			# Explotación del conocimiento de la Q-Table
-			q_values = self.get_q_values(current_state)
-			if safe_actions:
-				safe_q = {a: q_values[a] for a in safe_actions}
-				action = max(safe_q, key=safe_q.get)
-			else:
-				action = max(q_values, key=q_values.get) # Acción suicida inevitable si no hay safe_actions
-				
-		self.last_state = current_state
-		self.last_action = action
-		self.last_score = current_score
-		
-		# Persistir la memoria frecuentemente
-		if self.game.turn % 50 == 0:
-			self.save_q_table()
-			
-		return action
+		return self.play_board_state(self.board_state_from_game())

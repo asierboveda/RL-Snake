@@ -76,7 +76,7 @@ jobs:
         if: ${{ github.event.inputs.worker_role == 'runner' }}
         uses: actions/cache@v4
         with:
-          path: q_table_p0.pkl
+          path: models/q_table_p0.pkl
           key: qtable-${{ github.event.inputs.manager_run_id }}-it${{ github.event.inputs.iteration }}
           restore-keys: |
             qtable-${{ github.event.inputs.manager_run_id }}-
@@ -105,7 +105,7 @@ jobs:
         if: ${{ github.event.inputs.worker_role == 'runner' }}
         id: metrics
         run: |
-          REPORT=$(jq -c . runner-report.json 2>/dev/null || echo '{}')
+          REPORT=$(jq -c . logs/runner-report.json 2>/dev/null || echo '{}')
           echo "runner_report=$REPORT" >> "$GITHUB_OUTPUT"
 
       - name: Upload runner artifacts
@@ -115,8 +115,8 @@ jobs:
           name: runner-results-${{ github.run_id }}-it${{ github.event.inputs.iteration }}
           path: |
             worker-runner-output.log
-            runner-report.json
-            q_table_p0.pkl
+            logs/runner-report.json
+            models/q_table_p0.pkl
 
       # -----------------------------------------------------------------------
       # IMPLEMENTER WORKER
