@@ -8,7 +8,7 @@ import numpy as np
 from baseline_bots import GreedyPlayer, RandomPlayer, SurvivalPlayer
 from board_state import BoardState
 from rl_observation import FEATURE_SET_V1, build_observation
-from rl_reward import RewardConfig, compute_reward
+from rl_reward import RewardConfig, compute_reward, _is_silly_death
 from snake_env import SnakeEnv
 
 try:
@@ -43,10 +43,33 @@ except ImportError:  # pragma: no cover - exercised only without optional deps
     spaces = _Spaces()
 
 
-ACTIONS: Tuple[str, ...] = ("N", "S", "E", "W")
+RELATIVE_ACTIONS: Tuple[str, ...] = ("FORWARD", "LEFT", "RIGHT")
 OBSERVATION_NAME = "rl_observation_v1_features"
 INVALID_ACTION_PENALTY = -2.0
 BotFactory = Callable[[int, str, object], object]
+
+_ABSOLUTE_FROM_RELATIVE = {
+    "N": {"FORWARD": "N", "LEFT": "W", "RIGHT": "E", "BACK": "S"},
+    "S": {"FORWARD": "S", "LEFT": "E", "RIGHT": "W", "BACK": "N"},
+    "E": {"FORWARD": "E", "LEFT": "N", "RIGHT": "S", "BACK": "W"},
+    "W": {"FORWARD": "W", "LEFT": "S", "RIGHT": "N", "BACK": "E"},
+}
+
+
+def _relative_to_absolute(direction: str, relative: str) -> str:
+    return _ABSOLUTE_FROM_RELATIVE.get(direction, _ABSOLUTE_FROM_RELATIVE["N"])[relative]
+
+
+def _legal_relative_actions(state: BoardState, player_id: int, base_env: SnakeEnv) -> Tuple[str, ...]:
+    """Return relative actions that map to legal absolute actions."""
+    direction = state.snakes[player_id].head[2]
+    legal_abs = set(base_env.legal_actions(player_id))
+    legal_rel = []
+    for rel in RELATIVE_ACTIONS:
+        abs_action = _relative_to_absolute(direction, rel)
+        if abs_action in legal_abs:
+            legal_rel.append(rel)
+    return tuple(legal_rel)
 
 
 def make_bot_factories(kind: str) -> Tuple[BotFactory, BotFactory, BotFactory]:
@@ -78,7 +101,7 @@ class PPOHeadlessSnakeEnv(gym.Env):
         self.initial_fruits = initial_fruits
         self.turn_limit = turn_limit
         self.reward_config = reward_config
-        self.action_labels = ACTIONS
+        self.action_labels = RELATIVE_ACTIONS
         self.bot_factories = make_bot_factories(bot_kind)
         self.bot_kind = bot_kind
         self.base_env = SnakeEnv(seed=seed, initial_fruits=initial_fruits, turn_limit=turn_limit)
@@ -88,7 +111,7 @@ class PPOHeadlessSnakeEnv(gym.Env):
 
         obs_dim = len(FEATURE_SET_V1.feature_names)
         self.observation_space = spaces.Box(low=-10.0, high=10.0, shape=(obs_dim,), dtype=np.float32)
-        self.action_space = spaces.Discrete(len(ACTIONS))
+        self.action_space = spaces.Discrete(len(RELATIVE_ACTIONS))
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[Dict[str, object]] = None):
         if seed is not None:
@@ -110,21 +133,31 @@ class PPOHeadlessSnakeEnv(gym.Env):
             raise RuntimeError("call reset() before step()")
 
         action_int = int(action)
-        if action_int < 0 or action_int >= len(ACTIONS):
-            controlled_action = self._safe_fallback_action(self.previous_state)
+        direction = self.previous_state.snakes[self.controlled_player].head[2]
+
+        if action_int < 0 or action_int >= len(RELATIVE_ACTIONS):
+            intended_relative = "FORWARD"
             self.last_invalid_action = True
         else:
-            controlled_action = ACTIONS[action_int]
-            self.last_invalid_action = controlled_action not in self.base_env.legal_actions(self.controlled_player)
+            intended_relative = RELATIVE_ACTIONS[action_int]
+            intended_absolute = _relative_to_absolute(direction, intended_relative)
+            self.last_invalid_action = intended_absolute not in self.base_env.legal_actions(self.controlled_player)
 
-        actions = {self.controlled_player: controlled_action}
+        if self.last_invalid_action:
+            executed_relative = self._safe_fallback_relative_action(self.previous_state)
+        else:
+            executed_relative = intended_relative
+
+        executed_absolute = _relative_to_absolute(direction, executed_relative)
+
+        actions = {self.controlled_player: executed_absolute}
         for offset, bot in enumerate(self.bots, start=1):
             actions[offset] = bot.play_board_state(self.previous_state)
 
         transition = self.base_env.step(actions)
         reward = compute_reward(
             self.previous_state,
-            controlled_action,
+            executed_absolute,
             transition.state,
             self.controlled_player,
             transition.info,
@@ -141,7 +174,9 @@ class PPOHeadlessSnakeEnv(gym.Env):
             transition.state,
             reward=reward,
             invalid_action=self.last_invalid_action,
-            action=controlled_action,
+            relative_action=executed_relative,
+            absolute_action=executed_absolute,
+            intended_relative=intended_relative,
         )
 
     def replay_dict(self) -> Dict[str, object]:
@@ -159,11 +194,13 @@ class PPOHeadlessSnakeEnv(gym.Env):
         state: BoardState,
         reward: float,
         invalid_action: bool = False,
-        action: Optional[str] = None,
+        relative_action: Optional[str] = None,
+        absolute_action: Optional[str] = None,
+        intended_relative: Optional[str] = None,
     ) -> Dict[str, object]:
         snake = state.snakes[self.controlled_player]
         kill_score = max(0, snake.score - snake.fruit_score)
-        return {
+        info = {
             "observation": OBSERVATION_NAME,
             "bot_kind": self.bot_kind,
             "turn": state.turn,
@@ -175,14 +212,21 @@ class PPOHeadlessSnakeEnv(gym.Env):
             "terminal_reason": state.terminal_reason,
             "reward": float(reward),
             "invalid_action": invalid_action,
-            "action": action,
+            "relative_action": relative_action,
+            "absolute_action": absolute_action,
+            "intended_relative": intended_relative,
         }
+        if not snake.alive and self.previous_state is not None:
+            prev_snake = self.previous_state.snakes[self.controlled_player]
+            if prev_snake.alive:
+                info["death_cause"] = "silly" if _is_silly_death(self.previous_state, prev_snake, absolute_action or prev_snake.head[2]) else "combat"
+        return info
 
-    def _safe_fallback_action(self, state: BoardState) -> str:
-        legal = self.base_env.legal_actions(self.controlled_player)
-        if legal:
-            return legal[0]
-        return state.snakes[self.controlled_player].head[2]
+    def _safe_fallback_relative_action(self, state: BoardState) -> str:
+        legal_rel = _legal_relative_actions(state, self.controlled_player, self.base_env)
+        if legal_rel:
+            return legal_rel[0]
+        return "FORWARD"
 
 
 def run_policy_episode(
@@ -195,14 +239,31 @@ def run_policy_episode(
     total_reward = 0.0
     terminated = False
     truncated = False
+    invalid_actions = 0
+    steps = 0
+    relative_actions_taken = []
+    absolute_actions_taken = []
+    death_cause = None
     while not (terminated or truncated):
         action, _ = policy.predict(obs, deterministic=deterministic)
         obs, reward, terminated, truncated, info = env.step(int(action))
         total_reward += reward
+        steps += 1
+        if info.get("invalid_action"):
+            invalid_actions += 1
+        relative_actions_taken.append(info.get("relative_action"))
+        absolute_actions_taken.append(info.get("absolute_action"))
+        if not info.get("alive") and death_cause is None:
+            death_cause = info.get("death_cause", "unknown")
     info = dict(info)
     info["episode_reward"] = total_reward
     info["survival_turns"] = info["turn"]
     info["win"] = info.get("winner_id") == env.controlled_player
+    info["invalid_actions"] = invalid_actions
+    info["steps"] = steps
+    info["relative_action_distribution"] = {a: relative_actions_taken.count(a) for a in set(relative_actions_taken)}
+    info["absolute_action_distribution"] = {a: absolute_actions_taken.count(a) for a in set(absolute_actions_taken)}
+    info["death_cause"] = death_cause
     return info
 
 
@@ -225,7 +286,10 @@ def summarize_episode_metrics(episodes: Iterable[Dict[str, object]]) -> Dict[str
             "mean_survival_turns": 0.0,
             "mean_kills": 0.0,
             "win_rate": 0.0,
+            "invalid_action_rate": 0.0,
+            "early_death_rate": 0.0,
         }
+    total_steps = sum(row.get("steps", 0) for row in data) or 1
     return {
         "episodes": float(len(data)),
         "mean_reward": float(np.mean([row["episode_reward"] for row in data])),
@@ -234,4 +298,6 @@ def summarize_episode_metrics(episodes: Iterable[Dict[str, object]]) -> Dict[str
         "mean_survival_turns": float(np.mean([row["survival_turns"] for row in data])),
         "mean_kills": float(np.mean([row["kills"] for row in data])),
         "win_rate": float(np.mean([1.0 if row["win"] else 0.0 for row in data])),
+        "invalid_action_rate": float(sum(row.get("invalid_actions", 0) for row in data)) / total_steps,
+        "early_death_rate": float(sum(1.0 for row in data if row.get("survival_turns", 0) < 50)) / len(data),
     }

@@ -123,6 +123,11 @@ class RLObservationTests(unittest.TestCase):
         self.assertAlmostEqual(2 / (BOARD_ROWS + BOARD_COLS), feature_by_name["nearest_attackable_enemy_distance_norm"])
         self.assertAlmostEqual(3 / 4, feature_by_name["alive_snake_count_norm"])
         self.assertAlmostEqual(90 / FEATURE_SET_V1.turn_limit, feature_by_name["turn_norm"])
+        # Tactical features should be present and finite
+        self.assertIn("forward_safe", feature_by_name)
+        self.assertIn("best_fruit_distance", feature_by_name)
+        self.assertIn("attack_available", feature_by_name)
+        self.assertTrue(np.isfinite(features).all())
 
     def test_rejects_unknown_or_dead_own_player(self):
         dead_board = make_board(

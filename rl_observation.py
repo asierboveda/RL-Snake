@@ -4,6 +4,7 @@ from typing import Dict, Iterable, Optional, Sequence, Tuple
 import numpy as np
 
 from board_state import FRUIT_KILL_THRESHOLD, BoardState, SnakeState
+from tactical_planner import compute_tactical_features
 
 
 OWN_BODY_CHANNEL = 0
@@ -65,6 +66,34 @@ FEATURE_SET_V1 = FeatureSet(
         "nearest_attackable_enemy_distance_norm",
         "alive_snake_count_norm",
         "turn_norm",
+        "direction_N",
+        "direction_S",
+        "direction_E",
+        "direction_W",
+        "danger_forward",
+        "danger_left",
+        "danger_right",
+        "forward_safe",
+        "left_safe",
+        "right_safe",
+        "best_fruit_distance",
+        "best_fruit_action_forward",
+        "best_fruit_action_left",
+        "best_fruit_action_right",
+        "forward_free_space",
+        "left_free_space",
+        "right_free_space",
+        "attack_available",
+        "best_attack_distance",
+        "best_attack_action_forward",
+        "best_attack_action_left",
+        "best_attack_action_right",
+        "strong_enemy_risk_forward",
+        "strong_enemy_risk_left",
+        "strong_enemy_risk_right",
+        "head_to_head_risk_forward",
+        "head_to_head_risk_left",
+        "head_to_head_risk_right",
     ),
 )
 
@@ -144,6 +173,8 @@ def _build_features(board: BoardState, own: SnakeState, feature_set: FeatureSet)
     dangerous = [enemy for enemy in rivals if enemy.alive and not _is_attackable(own, enemy)]
     attackable = [enemy for enemy in rivals if enemy.alive and _is_attackable(own, enemy)]
 
+    tf = compute_tactical_features(board, player_id=own.player_id)
+
     values = [
         _score_norm(own.fruit_score, feature_set),
         *[_score_norm(enemy.fruit_score, feature_set) if enemy is not None else 0.0 for enemy in rival_slots],
@@ -161,6 +192,9 @@ def _build_features(board: BoardState, own: SnakeState, feature_set: FeatureSet)
         _nearest_distance_norm(_head_pos(own), [_head_pos(enemy) for enemy in attackable], board),
         _alive_count_norm(board.snakes),
         min(float(board.turn) / float(feature_set.turn_limit), 1.0),
+        *_direction_one_hot(own),
+        *_relative_danger(board, own),
+        *tf.to_array(),
     ]
     return np.asarray(values, dtype=np.float32)
 
@@ -257,6 +291,44 @@ def _manhattan(first: Tuple[int, int], second: Tuple[int, int]) -> int:
 
 def _alive_count_norm(snakes: Sequence[SnakeState]) -> float:
     return float(sum(1 for snake in snakes if snake.alive)) / float(len(snakes) or 1)
+
+
+_DIRECTION_ORDER = ("N", "S", "E", "W")
+
+_RELATIVE_ACTIONS = {
+    "N": {"forward": "N", "left": "W", "right": "E", "back": "S"},
+    "S": {"forward": "S", "left": "E", "right": "W", "back": "N"},
+    "E": {"forward": "E", "left": "N", "right": "S", "back": "W"},
+    "W": {"forward": "W", "left": "S", "right": "N", "back": "E"},
+}
+
+
+def _direction_one_hot(snake: SnakeState) -> Tuple[float, float, float, float]:
+    direction = snake.head[2]
+    return tuple(1.0 if d == direction else 0.0 for d in _DIRECTION_ORDER)
+
+
+def _relative_danger(board: BoardState, own: SnakeState) -> Tuple[float, float, float]:
+    direction = own.head[2]
+    mapping = _RELATIVE_ACTIONS.get(direction, _RELATIVE_ACTIONS["N"])
+    occupied = set()
+    for snake in board.snakes:
+        if not snake.alive:
+            continue
+        for cell in snake.occupied_cells():
+            occupied.add(cell)
+    dangers = []
+    for rel in ("forward", "left", "right"):
+        action = mapping[rel]
+        dr, dc = {"N": (-1, 0), "S": (1, 0), "E": (0, 1), "W": (0, -1)}[action]
+        nr, nc = own.head[0] + dr, own.head[1] + dc
+        if not (0 <= nr < board.rows and 0 <= nc < board.cols):
+            dangers.append(1.0)
+        elif (nr, nc) in occupied:
+            dangers.append(1.0)
+        else:
+            dangers.append(0.0)
+    return tuple(dangers)
 
 
 __all__ = [

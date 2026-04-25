@@ -16,26 +16,32 @@ class RewardConfig:
     Adjusting these weights will change the agent's behavior priorities.
     """
     # 1. Eating fruit
-    fruit_multiplier: float = 1.0       # Multiplier for points gained from eating fruit (e.g. fruit values are 10, 15, 20)
-    
+    fruit_multiplier: float = 2.0       # Multiplier for points gained from eating fruit (e.g. fruit values are 10, 15, 20)
+
     # 2. Surviving
-    survival_reward: float = 0.01       # Small positive reward for surviving a turn (dense reward)
-    
+    survival_reward: float = 0.1        # Positive reward for surviving a turn (dense reward)
+
     # 3. Kills and combat
     kill_multiplier: float = 2.0        # Multiplier for points gained from a valid kill (kill score is 30)
-    
+
     # 4. Death penalties
-    death_penalty: float = -50.0        # Base penalty for dying
-    silly_death_penalty: float = -30.0  # Additional penalty for obvious mistakes (walls, own body)
-    
+    death_penalty: float = -40.0        # Base penalty for dying
+    silly_death_penalty: float = -20.0  # Additional penalty for obvious mistakes (walls, own body)
+    early_death_penalty: float = -30.0  # Extra penalty for dying before turn 50
+    early_death_turn_threshold: int = 50
+
     # 5. Winning the game
     win_reward: float = 100.0           # Huge reward for winning the game
     draw_reward: float = 0.0            # Reward for tying
-    
+
     # 6. Strategic constraints
     # Penalize dying while not a hunter (score < 120) or dying to a bigger snake.
     # This teaches the agent to respect the 120 threshold and avoid impossible kills.
-    bad_combat_penalty: float = -20.0   
+    bad_combat_penalty: float = -10.0
+
+    # 7. Distance shaping to nearest fruit
+    fruit_approach_reward: float = 0.05
+    fruit_recede_penalty: float = -0.05   
 
 
 def compute_reward(
@@ -92,7 +98,11 @@ def compute_reward(
     # 4. Death Penalties
     if prev_snake.alive and not next_snake.alive:
         reward += config.death_penalty
-        
+
+        # Early death penalty
+        if previous_state.turn < config.early_death_turn_threshold:
+            reward += config.early_death_penalty
+
         # Analyze the cause of death
         is_silly = _is_silly_death(previous_state, prev_snake, action)
         if is_silly:
@@ -113,7 +123,16 @@ def compute_reward(
         elif next_state.terminal_reason == "draw" and next_snake.alive:
             # We survived until a draw
             reward += config.draw_reward
-            
+
+    # 7. Distance shaping to nearest fruit (only while alive)
+    if prev_snake.alive and next_snake.alive:
+        prev_dist = _nearest_fruit_manhattan(prev_snake, previous_state)
+        next_dist = _nearest_fruit_manhattan(next_snake, next_state)
+        if next_dist < prev_dist:
+            reward += config.fruit_approach_reward
+        elif next_dist > prev_dist:
+            reward += config.fruit_recede_penalty
+
     return reward
 
 
@@ -158,3 +177,13 @@ def _is_silly_death(state: BoardState, prev_snake: SnakeState, action: str) -> b
             return True
 
     return False
+
+
+def _nearest_fruit_manhattan(snake: SnakeState, state: BoardState) -> int:
+    head_r, head_c, _ = snake.head
+    if not state.fruits:
+        return 0
+    return min(
+        abs(head_r - fruit.row) + abs(head_c - fruit.col)
+        for fruit in state.fruits
+    )
