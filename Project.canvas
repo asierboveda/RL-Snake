@@ -62,7 +62,7 @@
 			"y": 40,
 			"width": 280,
 			"height": 180,
-			"color": "6"
+			"color": "1"
 		},
 		{
 			"id": "in02-oracle-vision",
@@ -192,7 +192,7 @@
 			"y": 800,
 			"width": 280,
 			"height": 180,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "vi06-eval",
@@ -202,7 +202,7 @@
 			"y": 1000,
 			"width": 280,
 			"height": 180,
-			"color": "0"
+			"color": "5"
 		},
 		{
 			"id": "in04-fallback",
@@ -263,26 +263,6 @@
 			"width": 280,
 			"height": 160,
 			"color": "4"
-		},
-		{
-			"id": "5aa1763d",
-			"type": "text",
-			"text": "## RL-03 Reward basico documentado antes de shaping avanzado\nEmpezar simple: +fruta, +kill, +victoria, -muerte, pequeno coste por turno. Evitar bonus complejos hasta demostrar aprendizaje basico.\n\n**Doc obligatoria:** formula en `docs/reward_v1.md` + tests de reward.",
-			"x": 900,
-			"y": 420,
-			"width": 280,
-			"height": 180,
-			"color": "0"
-		},
-		{
-			"id": "cec8cbe8",
-			"type": "text",
-			"text": "## RL-02 Definir observacion RL v1 y FeatureSet versionado\nNo entrenar desde la imagen real. Crear dos entradas desde BoardState: vector tabular minimo y mapa logico por canales. Versionar cada variante en `FeatureSet`.\n\n**Doc obligatoria:** `docs/observations.md` con shapes, rangos y justificacion.",
-			"x": 900,
-			"y": 220,
-			"width": 280,
-			"height": 180,
-			"color": "1"
 		},
 		{
 			"id": "rl11-production",
@@ -523,6 +503,26 @@
 			"width": 280,
 			"height": 180,
 			"color": "0"
+		},
+		{
+			"id": "5aa1763d",
+			"type": "text",
+			"text": "## RL-03 Reward basico documentado antes de shaping avanzado\nEmpezar simple: +fruta, +kill, +victoria, -muerte, pequeno coste por turno. Evitar bonus complejos hasta demostrar aprendizaje basico.\n\n**Doc obligatoria:** formula en `docs/reward_v1.md` + tests de reward.",
+			"x": 900,
+			"y": 420,
+			"width": 280,
+			"height": 180,
+			"color": "1"
+		},
+		{
+			"id": "cec8cbe8",
+			"type": "text",
+			"text": "## RL-02 Definir observacion RL v1 y FeatureSet versionado\nNo entrenar desde la imagen real. Crear dos entradas desde BoardState: vector tabular minimo y mapa logico por canales. Versionar cada variante en `FeatureSet`.\n\n**Doc obligatoria:** `docs/observations.md` con shapes, rangos y justificacion.",
+			"x": 900,
+			"y": 220,
+			"width": 280,
+			"height": 180,
+			"color": "4"
 		}
 	],
 	"edges": [

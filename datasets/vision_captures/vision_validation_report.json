@@ -1,0 +1,320 @@
+{
+  "metrics": {
+    "captures": 3,
+    "turn_accuracy": 1.0,
+    "score_exact_rate": 1.0,
+    "snake_cell_precision": 1.0,
+    "snake_cell_recall": 1.0,
+    "snake_cell_f1": 1.0,
+    "snake_head_accuracy": 1.0,
+    "fruit_precision": 1.0,
+    "fruit_recall": 1.0,
+    "fruit_f1": 1.0,
+    "mean_parser_confidence": 0.9992573333333333,
+    "total_errors": 0,
+    "total_warnings": 0
+  },
+  "captures": [
+    {
+      "capture_id": "snake000",
+      "turn_ok": true,
+      "score_exact": 1.0,
+      "snake_cell_precision": 1.0,
+      "snake_cell_recall": 1.0,
+      "snake_head_accuracy": 1.0,
+      "fruit_precision": 1.0,
+      "fruit_recall": 1.0,
+      "parser_confidence": 0.999238,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "capture_id": "snake012",
+      "turn_ok": true,
+      "score_exact": 1.0,
+      "snake_cell_precision": 1.0,
+      "snake_cell_recall": 1.0,
+      "snake_head_accuracy": 1.0,
+      "fruit_precision": 1.0,
+      "fruit_recall": 1.0,
+      "parser_confidence": 0.999235,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "capture_id": "snake025",
+      "turn_ok": true,
+      "score_exact": 1.0,
+      "snake_cell_precision": 1.0,
+      "snake_cell_recall": 1.0,
+      "snake_head_accuracy": 1.0,
+      "fruit_precision": 1.0,
+      "fruit_recall": 1.0,
+      "parser_confidence": 0.999299,
+      "errors": [],
+      "warnings": []
+    }
+  ],
+  "hard_cases": [
+    {
+      "rank": 1,
+      "capture_id": "snake025",
+      "component": "snake",
+      "entity": "B:snake_tail",
+      "cell": [
+        0,
+        35
+      ],
+      "confidence": 0.998674,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; zona de borde, alta densidad local"
+    },
+    {
+      "rank": 2,
+      "capture_id": "snake025",
+      "component": "snake",
+      "entity": "B:snake_head",
+      "cell": [
+        0,
+        33
+      ],
+      "confidence": 0.998802,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; zona de borde, alta densidad local"
+    },
+    {
+      "rank": 3,
+      "capture_id": "snake025",
+      "component": "snake",
+      "entity": "B:snake_body",
+      "cell": [
+        0,
+        34
+      ],
+      "confidence": 0.999005,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; zona de borde, alta densidad local"
+    },
+    {
+      "rank": 4,
+      "capture_id": "snake012",
+      "component": "fruit",
+      "entity": "fruit_15",
+      "cell": [
+        0,
+        28
+      ],
+      "confidence": 0.998552,
+      "matched": true,
+      "comment": "fruta: coincide con ground truth; zona de borde"
+    },
+    {
+      "rank": 5,
+      "capture_id": "snake012",
+      "component": "fruit",
+      "entity": "fruit_10",
+      "cell": [
+        24,
+        13
+      ],
+      "confidence": 0.998598,
+      "matched": true,
+      "comment": "fruta: coincide con ground truth; alta densidad local"
+    },
+    {
+      "rank": 6,
+      "capture_id": "snake012",
+      "component": "snake",
+      "entity": "Y:snake_head",
+      "cell": [
+        28,
+        30
+      ],
+      "confidence": 0.998678,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; alta densidad local"
+    },
+    {
+      "rank": 7,
+      "capture_id": "snake012",
+      "component": "snake",
+      "entity": "Y:snake_tail",
+      "cell": [
+        27,
+        30
+      ],
+      "confidence": 0.998758,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; alta densidad local"
+    },
+    {
+      "rank": 8,
+      "capture_id": "snake025",
+      "component": "snake",
+      "entity": "Y:snake_tail",
+      "cell": [
+        32,
+        24
+      ],
+      "confidence": 0.99877,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; alta densidad local"
+    },
+    {
+      "rank": 9,
+      "capture_id": "snake025",
+      "component": "snake",
+      "entity": "Y:snake_head",
+      "cell": [
+        31,
+        24
+      ],
+      "confidence": 0.998817,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; alta densidad local"
+    },
+    {
+      "rank": 10,
+      "capture_id": "snake012",
+      "component": "snake",
+      "entity": "B:snake_tail",
+      "cell": [
+        1,
+        36
+      ],
+      "confidence": 0.998837,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; alta densidad local"
+    },
+    {
+      "rank": 11,
+      "capture_id": "snake012",
+      "component": "snake",
+      "entity": "B:snake_head",
+      "cell": [
+        1,
+        37
+      ],
+      "confidence": 0.998859,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; alta densidad local"
+    },
+    {
+      "rank": 12,
+      "capture_id": "snake025",
+      "component": "snake",
+      "entity": "R:snake_head",
+      "cell": [
+        31,
+        14
+      ],
+      "confidence": 0.999126,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; alta densidad local"
+    },
+    {
+      "rank": 13,
+      "capture_id": "snake025",
+      "component": "snake",
+      "entity": "R:snake_tail",
+      "cell": [
+        33,
+        14
+      ],
+      "confidence": 0.999356,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; alta densidad local"
+    },
+    {
+      "rank": 14,
+      "capture_id": "snake025",
+      "component": "snake",
+      "entity": "R:snake_body",
+      "cell": [
+        32,
+        14
+      ],
+      "confidence": 0.999382,
+      "matched": true,
+      "comment": "segmento serpiente: coincide con ground truth; alta densidad local"
+    },
+    {
+      "rank": 15,
+      "capture_id": "snake000",
+      "component": "fruit",
+      "entity": "fruit_15",
+      "cell": [
+        31,
+        1
+      ],
+      "confidence": 0.998377,
+      "matched": true,
+      "comment": "fruta: coincide con ground truth; caso de referencia estable"
+    },
+    {
+      "rank": 16,
+      "capture_id": "snake012",
+      "component": "fruit",
+      "entity": "fruit_15",
+      "cell": [
+        31,
+        1
+      ],
+      "confidence": 0.998538,
+      "matched": true,
+      "comment": "fruta: coincide con ground truth; caso de referencia estable"
+    },
+    {
+      "rank": 17,
+      "capture_id": "snake000",
+      "component": "fruit",
+      "entity": "fruit_10",
+      "cell": [
+        24,
+        13
+      ],
+      "confidence": 0.998574,
+      "matched": true,
+      "comment": "fruta: coincide con ground truth; caso de referencia estable"
+    },
+    {
+      "rank": 18,
+      "capture_id": "snake000",
+      "component": "fruit",
+      "entity": "fruit_15",
+      "cell": [
+        16,
+        7
+      ],
+      "confidence": 0.99858,
+      "matched": true,
+      "comment": "fruta: coincide con ground truth; caso de referencia estable"
+    },
+    {
+      "rank": 19,
+      "capture_id": "snake012",
+      "component": "fruit",
+      "entity": "fruit_15",
+      "cell": [
+        16,
+        7
+      ],
+      "confidence": 0.998583,
+      "matched": true,
+      "comment": "fruta: coincide con ground truth; caso de referencia estable"
+    },
+    {
+      "rank": 20,
+      "capture_id": "snake012",
+      "component": "fruit",
+      "entity": "fruit_15",
+      "cell": [
+        33,
+        14
+      ],
+      "confidence": 0.998584,
+      "matched": true,
+      "comment": "fruta: coincide con ground truth; caso de referencia estable"
+    }
+  ]
+}

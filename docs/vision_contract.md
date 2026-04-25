@@ -66,3 +66,16 @@ El parser reporta:
 ## Compatibilidad con RL
 
 La salida `board_state` de `VisionParseResult` es directa para `RLPlayer.play_board_state(...)` sin acoplarse al entorno headless.
+
+## Validacion contra dataset (VI-06)
+
+La evaluacion oficial del parser visual se ejecuta con:
+
+```powershell
+python .\tools\validate_vision_parser.py
+```
+
+Este comando genera:
+
+- `docs/vision_validation_report.md` (reporte humano con metricas y top-20 casos dificiles comentados).
+- `datasets/vision_captures/vision_validation_report.json` (salida estructurada para QA/CI).
