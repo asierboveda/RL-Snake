@@ -43,6 +43,15 @@ La implementacion ejecutable para el panel superior esta en `vision_hud.py`. Exp
 
 El detector usa matching de plantillas contra los mismos sprites de digitos que usa `SnakeGame.drawScore`, por lo que queda desacoplado del estado interno del motor y solo depende de la captura renderizada.
 
+## Detector de serpientes
+
+La implementacion ejecutable para segmentos de serpiente esta en `vision_snakes.py`. Expone `detect_snakes(image)` y devuelve:
+
+- `segments`: detecciones por celda con clase (`snake_head`, `snake_body`, `snake_tail`), jugador, direccion y `confidence`.
+- `players`: agrupacion por color con reconstruccion de cadena (`board_body`) para comparacion con `BoardState`.
+
+El detalle de errores tipicos y ejemplos visuales para VI-03 se documenta en `docs/vision_snakes.md`.
+
 ## Formato de etiqueta
 
 Cada captura debe tener un JSON de anotacion que cumpla `datasets/vision_captures/labels.schema.json`. La etiqueta separa cuatro niveles:
