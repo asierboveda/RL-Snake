@@ -79,3 +79,11 @@ Este comando genera:
 
 - `docs/vision_validation_report.md` (reporte humano con metricas y top-20 casos dificiles comentados).
 - `datasets/vision_captures/vision_validation_report.json` (salida estructurada para QA/CI).
+
+## Politica de confianza y fallback (VI-07)
+
+La capa operativa entre vision y agente RL esta en `vision_fallback.py`.
+
+Su documentacion completa (modos, umbrales y fallback esperado) esta en:
+
+- `docs/vision_fallback_policy.md`
