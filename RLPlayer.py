@@ -13,11 +13,12 @@ from board_state import (
 
 class RLPlayer:
 
-	def __init__(self, playerID, color, game, epsilon=0.1, alpha=0.1, gamma=0.9, training_enabled=True):
+	def __init__(self, playerID, color, game=None, epsilon=0.1, alpha=0.1, gamma=0.9, training_enabled=True, rng=None):
 		self.playerID = playerID
 		self.color = color
 		self.game = game
 		self.training_enabled = training_enabled  # False = modo evaluacion (sin actualizaciones Q)
+		self.rng = rng if rng is not None else random
 		
 		# Hiperparámetros de Q-Learning (Markov Decision Process)
 		self.epsilon = epsilon # Tasa de exploración
@@ -167,8 +168,8 @@ class RLPlayer:
 			self.update_q_table(self.last_state, self.last_action, reward, current_state)
 
 		safe_actions = self.get_safe_actions_from_board(board_state)
-		if random.random() < self.epsilon:
-			action = random.choice(safe_actions if safe_actions else self.actions)
+		if self.rng.random() < self.epsilon:
+			action = self.rng.choice(safe_actions if safe_actions else self.actions)
 		else:
 			q_values = self.get_q_values(current_state)
 			if safe_actions:
