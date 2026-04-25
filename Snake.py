@@ -1,5 +1,13 @@
+import numpy as np
 
-from matplotlib import image
+
+def _load_image(path, fallback_shape=(17, 17, 3)):
+	try:
+		from matplotlib import image
+		pic = image.imread(path)
+		return pic[:,:,:3]
+	except Exception:
+		return np.zeros(fallback_shape, dtype=float)
 
 class Snake:
 	
@@ -106,8 +114,7 @@ class Snake:
 		fromC=(pos[1])*(self.game.SFACTOR+1)+1
 		toC=fromC+self.game.SFACTOR
 
-		pic=image.imread("./input/"+str(self.game.SFACTOR)+"/snakehead_"+self.color+"_"+pos[2]+".png")
-		pic=pic[:,:,:3]
+		pic=_load_image("./input/"+str(self.game.SFACTOR)+"/snakehead_"+self.color+"_"+pos[2]+".png")
 			
 		#we need to check in case snake is dead by getting out of limits
 		if not self.snakeAlive():
@@ -152,8 +159,7 @@ class Snake:
 		fromC=(pos[1])*(self.game.SFACTOR+1)+1
 		toC=fromC+self.game.SFACTOR
 
-		pic=image.imread("./input/"+str(self.game.SFACTOR)+"/snake_"+self.color+"_"+pos[2]+".png")
-		pic=pic[:,:,:3]
+		pic=_load_image("./input/"+str(self.game.SFACTOR)+"/snake_"+self.color+"_"+pos[2]+".png")
 		im[fromR:toR,fromC:toC,:]=pic
 
 	def drawTail(self,im):
@@ -168,7 +174,6 @@ class Snake:
 		fromC=(pos[1])*(self.game.SFACTOR+1)+1
 		toC=fromC+self.game.SFACTOR
 
-		pic=image.imread("./input/"+str(self.game.SFACTOR)+"/snaketail_"+self.color+"_"+pos[2]+".png")
-		pic=pic[:,:,:3]
+		pic=_load_image("./input/"+str(self.game.SFACTOR)+"/snaketail_"+self.color+"_"+pos[2]+".png")
 		im[fromR:toR,fromC:toC,:]=pic	
 			
