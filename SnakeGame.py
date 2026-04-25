@@ -102,29 +102,24 @@ class SnakeGame:
 
 	def checkMovements(self):
 		
-		#Caso 1: Chequear serpientes que se salen
-		for s in self.snakes:
-			if s.isAlive and s.isOutOfBounds():
-				s.isAlive=False
-
-		#Caso 2: Serpiente se choca consigo misma
-		for s in self.snakes:
-			if s.isAlive and s.eatItself():
-				s.isAlive=False
-
-		#Caso 3/4 Battle Royale: Choques entre serpientes
-		# Reglas: "Mata siempre la que tiene mas puntos (con la condicion de mas de 120)"
-		# "si no tienen esos puntos y se chocan(da igual la parte la cuerpo) se mueren las dos"
-		# Kill adds 30 points.
-		snakes_to_kill = set()
-		killer_awards = []
+		alive_at_start = [i for i, s in enumerate(self.snakes) if s.isAlive]
 		
-		for i in range(len(self.snakes)):
-			for j in range(i+1, len(self.snakes)):
+		dead_this_turn = set()
+		killer_awards = {i: 0 for i in alive_at_start}
+		
+		# Caso 1 y 2: Chequear serpientes que se salen o se chocan consigo mismas
+		for i in alive_at_start:
+			s = self.snakes[i]
+			if s.isOutOfBounds() or s.eatItself():
+				dead_this_turn.add(i)
+
+		# Caso 3/4 Battle Royale: Choques entre serpientes
+		for idx1 in range(len(alive_at_start)):
+			for idx2 in range(idx1 + 1, len(alive_at_start)):
+				i = alive_at_start[idx1]
+				j = alive_at_start[idx2]
 				s1 = self.snakes[i]
 				s2 = self.snakes[j]
-				if not s1.isAlive and not s2.isAlive:
-					continue
 				
 				# Check collision (any part overlaps)
 				crashed = False
@@ -137,49 +132,52 @@ class SnakeGame:
 						break
 				
 				if crashed:
-					# Verify rules based on fruit points
-					pts_fruit1 = s1.getFruitScore()
-					pts_fruit2 = s2.getFruitScore()
+					pts1 = s1.getFruitScore()
+					pts2 = s2.getFruitScore()
 					
-					if pts_fruit1 < 120 and pts_fruit2 < 120:
-						snakes_to_kill.add(i)
-						snakes_to_kill.add(j)
-					elif pts_fruit1 == pts_fruit2:
-						snakes_to_kill.add(i)
-						snakes_to_kill.add(j)
+					if pts1 == pts2:
+						dead_this_turn.add(i)
+						dead_this_turn.add(j)
 					else:
-						if pts_fruit1 > pts_fruit2:
-							snakes_to_kill.add(j) # s2 dies
-							if s1.isAlive and i not in snakes_to_kill:
-								killer_awards.append(i) # s1 gets points
-						elif pts_fruit2 > pts_fruit1:
-							snakes_to_kill.add(i) # s1 dies
-							if s2.isAlive and j not in snakes_to_kill:
-								killer_awards.append(j) # s2 gets points
+						if pts1 > pts2:
+							winner, loser = i, j
+							pts_winner = pts1
+						else:
+							winner, loser = j, i
+							pts_winner = pts2
+							
+						if pts_winner >= 120:
+							dead_this_turn.add(loser)
+							killer_awards[winner] += 30
+						else:
+							# Ambas < 120
+							dead_this_turn.add(i)
+							dead_this_turn.add(j)
 						
 		# Apply deaths and awards
-		for idx in snakes_to_kill:
+		for idx in dead_this_turn:
 			self.snakes[idx].isAlive = False
 			
-		for idx in killer_awards:
-			if self.snakes[idx].isAlive:
-				self.snakes[idx].addPoints(30, from_fruit=False)
-
+		for idx, award in killer_awards.items():
+			if award > 0 and idx not in dead_this_turn:
+				self.snakes[idx].addPoints(award, from_fruit=False)
 
         # Caso frutas comidas
-		for snake in self.snakes:
-			if snake.snakeAlive() and snake.fruitEaten:
-				removeIndex = -1
-				for idxF in range(0,len(list(self.fruits))):
-					f=self.fruits[idxF]
-					if f.overlaps(snake.headPos()):
-						fruitPoints=f.value
-						removeIndex=idxF
-						break
-				
-				if removeIndex != -1:
-					snake.addPoints(fruitPoints, from_fruit=True)
-					del self.fruits[removeIndex]
+		for i in alive_at_start:
+			if i not in dead_this_turn:
+				snake = self.snakes[i]
+				if snake.fruitEaten:
+					removeIndex = -1
+					for idxF in range(0,len(list(self.fruits))):
+						f=self.fruits[idxF]
+						if f.overlaps(snake.headPos()):
+							fruitPoints=f.value
+							removeIndex=idxF
+							break
+					
+					if removeIndex != -1:
+						snake.addPoints(fruitPoints, from_fruit=True)
+						del self.fruits[removeIndex]
 				
 		#Recap: Game is alive if > 1 snake is alive
 		alive_count = sum([1 for s in self.snakes if s.isAlive])
