@@ -43,6 +43,30 @@ La implementacion ejecutable para el panel superior esta en `vision_hud.py`. Exp
 
 El detector usa matching de plantillas contra los mismos sprites de digitos que usa `SnakeGame.drawScore`, por lo que queda desacoplado del estado interno del motor y solo depende de la captura renderizada.
 
+## Detector de serpientes
+
+La implementacion ejecutable para segmentos de serpiente esta en `vision_snakes.py`. Expone `detect_snakes(image)` y devuelve:
+
+- `segments`: detecciones por celda con clase (`snake_head`, `snake_body`, `snake_tail`), jugador, direccion y `confidence`.
+- `players`: agrupacion por color con reconstruccion de cadena (`board_body`) para comparacion con `BoardState`.
+
+El detalle de errores tipicos y ejemplos visuales para VI-03 se documenta en `docs/vision_snakes.md`.
+
+## Detector de frutas
+
+La implementacion ejecutable para frutas esta en `vision_fruits.py`. Expone `detect_fruits(image)` y devuelve:
+
+- `fruits`: detecciones por celda con clase (`fruit_10`, `fruit_15`, `fruit_20`), valor y `confidence`.
+- `by_value`: agrupacion por valor para reportar precision por celda y por clase.
+
+El detector usa matching de plantillas `fruit10/15/20` con margen frente a plantillas no-fruta (serpientes y bomba), para evitar falsos positivos en frames con mas movimiento.
+
+## VisionParser (imagen -> BoardState)
+
+La integracion de todos los detectores en una salida canonica esta en `vision_parser.py` (`VisionParser.parse`).
+
+El contrato detallado de la salida (`VisionParseResult`, `BoardState`, politicas de confianza y validaciones) esta en `docs/vision_contract.md`.
+
 ## Formato de etiqueta
 
 Cada captura debe tener un JSON de anotacion que cumpla `datasets/vision_captures/labels.schema.json`. La etiqueta separa cuatro niveles:
